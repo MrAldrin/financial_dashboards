@@ -1,8 +1,19 @@
 # Agent Instructions for Invest Calculator Marimo
 
-Welcome, autonomous agent! This repository is an interactive investment and mortgage calculator built using [marimo](https://marimo.io). The project is automatically exported to WebAssembly (WASM) and deployed to GitHub Pages via GitHub Actions.
+Welcome, autonomous agent! This repository is for interactive notebooks and dashboards using marimo. The project is automatically exported to WebAssembly (WASM) and deployed to GitHub Pages via GitHub Actions.
 
 The user uses this project for learning, so **you must explain complex architectural and coding choices well during the planning phase and at the end of the build**. 
+
+## General:
+
+**Never** write code unless told so explicitly!
+
+Special repo folder:
+- plans/: 
+    - A special folder that you should use if you make longer plans.
+    - We will often iterate on a .md file together before implementing the plan. 
+    - The bottom of the files should contain tracking of progress for that plan.
+
 
 ## 1. Workflows & Commands
 
@@ -42,13 +53,13 @@ There are several marimo-specific skills available in the environment. Whenever 
 - **Commenting:** Provide high-quality, explanatory comments for complex or verbose logic (e.g., financial math or data transformations).
 
 ### Frameworks & Libraries
-- **Marimo:** Files in `apps/` (like `apps/dashboard_stock_investment.py`) maintain the `@app.cell` decorator structure. Use `mo.ui` for interactive elements and `mo.md` for markdown. 
-- **Polars over Pandas:** We use `polars` (`import polars as pl`) exclusively for dataframes to ensure maximum performance. 
-- **Altair:** Use `altair` (`import altair as alt`) for all data visualizations. 
+- Notebook: **Marimo:**
+- Dataframe library: **Polars**
+- Plotting library: **Altair:** 
 
-### Imports & File Structure
-- Due to the nature of marimo notebooks, imports are generally done inside the cell where they are first used or returned to be shared across cells. 
-- The user is primarily working out of `apps/dashboard_stock_investment.py` (which runs in `--mode run`). Other notebooks may just be template placeholders.
+### Current projects
+- Stock investments 
+- Builing taxation
 
 ### Typing & Naming
 - Always use Python type hints for function signatures (e.g., `def calculate(amount: float) -> pl.DataFrame:`).
