@@ -6,9 +6,8 @@ The user uses this project for learning, so **you must explain complex architect
 
 ## General:
 
-**Never**:
-- write code unless told so explicitly!
-- use @app.cell(hide_code=True)
+- **Never** write code unless told so explicitly!
+- **Never** use @app.cell(hide_code=True)
 
 Special repo folder:
 - plans/: 

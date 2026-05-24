@@ -4,6 +4,7 @@
 #     "marimo>=0.23.8",
 # ]
 # ///
+
 import marimo
 
 __generated_with = "0.23.8"
@@ -15,7 +16,7 @@ with app.setup:
     import altair as alt
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _():
     mo.md("""
     # Norwegian Wealth Tax Calculator
@@ -24,39 +25,32 @@ def _():
     return
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _():
     is_couple = mo.ui.switch(label="Is Couple (Double base deduction)?")
-    property_type = mo.ui.radio(
-        options=["Primary Residence", "Secondary Residence"],
-        value="Primary Residence",
-        label="Property Type",
-    )
-    mortgage_debt = mo.ui.number(
-        label="Mortgage Debt (NOK)", value=3000000, step=100000
-    )
+    mortgage_debt = mo.ui.number(label="Mortgage Debt (NOK)", value=3000000, step=100000)
     other_net_wealth = mo.ui.number(
         label="Other Net Wealth (NOK)", value=500000, step=100000
     )
-    return is_couple, mortgage_debt, other_net_wealth, property_type
+    return is_couple, mortgage_debt, other_net_wealth
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _():
     custom_tier1_rate = mo.ui.slider(
-        start=0, stop=100, step=1, value=25, label="Custom Tier 1 Rate (%)"
+        start=0, stop=100, step=1, value=25, label="Tier 1 Rate (%)"
     )
     custom_tier2_rate = mo.ui.slider(
-        start=0, stop=100, step=1, value=70, label="Custom Tier 2 Rate (%)"
+        start=0, stop=100, step=1, value=70, label="Tier 2 Rate (%)"
     )
     custom_valuation_threshold = mo.ui.number(
-        label="Custom Valuation Threshold (NOK)", value=14000000, step=1000000
+        label="Valuation Threshold (NOK)", value=14000000, step=1000000
     )
     custom_base_deduction = mo.ui.number(
-        label="Custom Base Deduction (NOK)", value=1700000, step=100000
+        label="Base Deduction (NOK)", value=1900000, step=100000
     )
     custom_tax_rate = mo.ui.slider(
-        start=0.0, stop=5.0, step=0.1, value=1.0, label="Custom Standard Tax Rate (%)"
+        start=0.0, stop=5.0, step=0.1, value=1.0, label="Standard Tax Rate (%)"
     )
     return (
         custom_base_deduction,
@@ -67,7 +61,7 @@ def _():
     )
 
 
-@app.cell(hide_code=True)
+@app.cell
 def _(
     custom_base_deduction,
     custom_tax_rate,
@@ -77,14 +71,55 @@ def _(
     is_couple,
     mortgage_debt,
     other_net_wealth,
-    property_type,
+):
+    # Current Law baseline constants
+    current_df = calculate_wealth_tax_df(
+        is_couple=is_couple.value,
+        mortgage_debt=mortgage_debt.value,
+        other_net_wealth=other_net_wealth.value,
+        tier1_rate=25.0,
+        tier2_rate=70.0,
+        valuation_threshold=14_000_000.0,
+        base_deduction=1_900_000.0,
+        tax_rate=1.0,
+        scenario_name="Current Law",
+    )
+
+    # Custom Sandbox scenario
+    custom_df = calculate_wealth_tax_df(
+        is_couple=is_couple.value,
+        mortgage_debt=mortgage_debt.value,
+        other_net_wealth=other_net_wealth.value,
+        tier1_rate=custom_tier1_rate.value,
+        tier2_rate=custom_tier2_rate.value,
+        valuation_threshold=custom_valuation_threshold.value,
+        base_deduction=custom_base_deduction.value,
+        tax_rate=custom_tax_rate.value,
+        scenario_name="Custom Sandbox",
+    )
+
+    # Concat for plotting
+    tax_df = pl.concat([current_df, custom_df])
+    return (tax_df,)
+
+
+@app.cell
+def _(
+    custom_base_deduction,
+    custom_tax_rate,
+    custom_tier1_rate,
+    custom_tier2_rate,
+    custom_valuation_threshold,
+    is_couple,
+    mortgage_debt,
+    other_net_wealth,
 ):
     mo.vstack(
         [
             mo.md("### Personal Context"),
-            mo.hstack([is_couple, property_type]),
+            is_couple,
             mo.hstack([mortgage_debt, other_net_wealth]),
-            mo.md("### Policy Sandbox (Custom Rules)"),
+            mo.md("### Policy Sandbox"),
             mo.hstack([custom_tier1_rate, custom_tier2_rate]),
             mo.hstack([custom_valuation_threshold, custom_base_deduction]),
             custom_tax_rate,
@@ -93,165 +128,99 @@ def _(
     return
 
 
-@app.cell(hide_code=True)
-def _(
-    custom_base_deduction,
-    custom_tax_rate,
-    custom_tier1_rate,
-    custom_tier2_rate,
-    custom_valuation_threshold,
-    is_couple,
-    mortgage_debt,
-    other_net_wealth,
-    property_type,
-):
-    def calculate_wealth_tax_df(
-        is_couple: bool,
-        property_type: str,
-        mortgage_debt: float,
-        other_net_wealth: float,
-        custom_tier1: float,
-        custom_tier2: float,
-        custom_threshold: float,
-        custom_base_ded: float,
-        custom_tax_rate: float,
-    ) -> pl.DataFrame:
-        # 0 to 40M with 500k steps
-        market_values = pl.Series("market_value", range(0, 40_500_000, 500_000))
-        df = pl.DataFrame([market_values])
+@app.cell
+def _(tax_df):
+    create_charts(tax_df)
+    return
 
-        # Current Law Valuation
-        if property_type == "Primary Residence":
-            df = df.with_columns(
-                current_valuation=pl.when(pl.col("market_value") <= 14_000_000)
-                .then(pl.col("market_value") * 0.25)
-                .otherwise(
-                    14_000_000 * 0.25 + (pl.col("market_value") - 14_000_000) * 0.70
-                )
-            )
-        else:
-            df = df.with_columns(current_valuation=pl.col("market_value") * 1.00)
 
-        # Custom Law Valuation
-        if property_type == "Primary Residence":
-            df = df.with_columns(
-                custom_valuation=pl.when(pl.col("market_value") <= custom_threshold)
-                .then(pl.col("market_value") * (custom_tier1 / 100))
-                .otherwise(
-                    custom_threshold * (custom_tier1 / 100)
-                    + (pl.col("market_value") - custom_threshold) * (custom_tier2 / 100)
-                )
-            )
-        else:
-            df = df.with_columns(custom_valuation=pl.col("market_value") * 1.00)
-
-        # Calculate Net Wealth
-        df = df.with_columns(
-            current_net_wealth=pl.col("current_valuation")
-            + other_net_wealth
-            - mortgage_debt,
-            custom_net_wealth=pl.col("custom_valuation")
-            + other_net_wealth
-            - mortgage_debt,
+@app.function
+def create_charts(df: pl.DataFrame):
+    val_chart = (
+        alt.Chart(df)
+        .mark_line()
+        .encode(
+            x=alt.X("market_value:Q", title="Real Market Value (NOK)"),
+            y=alt.Y("valuation:Q", title="Taxable Value (NOK)"),
+            color="Scenario:N",
+            tooltip=["market_value", "valuation", "Scenario"],
         )
-
-        # Apply Deductions
-        current_base_deduction = 3_400_000 if is_couple else 1_700_000
-        custom_base_ded_actual = custom_base_ded * 2 if is_couple else custom_base_ded
-
-        df = df.with_columns(
-            current_taxable_wealth=pl.max_horizontal(
-                0, pl.col("current_net_wealth") - current_base_deduction
-            ),
-            custom_taxable_wealth=pl.max_horizontal(
-                0, pl.col("custom_net_wealth") - custom_base_ded_actual
-            ),
+        .properties(
+            width="container", height=350, title="Valuation Curve (Formuesverdi)"
         )
+    )
 
-        # Calculate Tax
+    tax_chart = (
+        alt.Chart(df)
+        .mark_line()
+        .encode(
+            x=alt.X("market_value:Q", title="Real Market Value (NOK)"),
+            y=alt.Y("tax:Q", title="Annual Wealth Tax (NOK)"),
+            color="Scenario:N",
+            tooltip=["market_value", "tax", "Scenario"],
+        )
+        .properties(width="container", height=350, title="Wealth Tax Impact")
+    )
+
+    return mo.vstack([val_chart, tax_chart])
+
+
+@app.function
+def calculate_wealth_tax_df(
+    is_couple: bool,
+    mortgage_debt: float,
+    other_net_wealth: float,
+    tier1_rate: float,
+    tier2_rate: float,
+    valuation_threshold: float,
+    base_deduction: float,
+    tax_rate: float,
+    scenario_name: str,
+) -> pl.DataFrame:
+    # 0 to 40M with 500k steps
+    market_values = pl.Series("market_value", range(0, 30_500_000, 500_000))
+    df = pl.DataFrame([market_values])
+
+    # Valuation
+    df = df.with_columns(
+        valuation=pl.when(pl.col("market_value") <= valuation_threshold)
+        .then(pl.col("market_value") * (tier1_rate / 100))
+        .otherwise(
+            valuation_threshold * (tier1_rate / 100)
+            + (pl.col("market_value") - valuation_threshold) * (tier2_rate / 100)
+        )
+    )
+
+    # Net Wealth
+    df = df.with_columns(
+        net_wealth=pl.col("valuation") + other_net_wealth - mortgage_debt
+    )
+
+    # Base Deduction
+    actual_base_ded = base_deduction * 2 if is_couple else base_deduction
+
+    # Taxable Wealth
+    df = df.with_columns(
+        taxable_wealth=pl.max_horizontal(0, pl.col("net_wealth") - actual_base_ded)
+    )
+
+    # Tax Calculation
+    if scenario_name == "Current Law":
         # Current Standard: 1.0% up to 20M, 1.1% above 20M
         df = df.with_columns(
-            current_tax=pl.when(pl.col("current_taxable_wealth") <= 20_000_000)
-            .then(pl.col("current_taxable_wealth") * 0.01)
+            tax=pl.when(pl.col("taxable_wealth") <= 20_000_000)
+            .then(pl.col("taxable_wealth") * 0.01)
             .otherwise(
-                20_000_000 * 0.01
-                + (pl.col("current_taxable_wealth") - 20_000_000) * 0.011
-            ),
-            custom_tax=pl.col("custom_taxable_wealth") * (custom_tax_rate / 100),
-        )
-
-        return df
-
-    tax_df = calculate_wealth_tax_df(
-        is_couple=is_couple.value,
-        property_type=property_type.value,
-        mortgage_debt=mortgage_debt.value,
-        other_net_wealth=other_net_wealth.value,
-        custom_tier1=custom_tier1_rate.value,
-        custom_tier2=custom_tier2_rate.value,
-        custom_threshold=custom_valuation_threshold.value,
-        custom_base_ded=custom_base_deduction.value,
-        custom_tax_rate=custom_tax_rate.value,
-    )
-    return (tax_df,)
-
-
-@app.cell(hide_code=True)
-def _(tax_df):
-    def create_charts(df: pl.DataFrame):
-        # Melt for Valuation Curve
-        df_val = df.select(
-            ["market_value", "current_valuation", "custom_valuation"]
-        ).unpivot(
-            index="market_value", variable_name="Scenario", value_name="Taxable Value"
-        )
-        df_val = df_val.with_columns(
-            pl.col("Scenario")
-            .str.replace("current_valuation", "Current Law")
-            .str.replace("custom_valuation", "Custom Sandbox")
-        )
-
-        val_chart = (
-            alt.Chart(df_val)
-            .mark_line()
-            .encode(
-                x=alt.X("market_value:Q", title="Real Market Value (NOK)"),
-                y=alt.Y("Taxable Value:Q", title="Taxable Value (NOK)"),
-                color="Scenario:N",
-                tooltip=["market_value", "Taxable Value", "Scenario"],
-            )
-            .properties(
-                width="container", height=350, title="Valuation Curve (Formuesverdi)"
+                20_000_000 * 0.01 + (pl.col("taxable_wealth") - 20_000_000) * 0.011
             )
         )
+    else:
+        df = df.with_columns(tax=pl.col("taxable_wealth") * (tax_rate / 100))
 
-        # Melt for Tax Impact Graph
-        df_tax = df.select(["market_value", "current_tax", "custom_tax"]).unpivot(
-            index="market_value", variable_name="Scenario", value_name="Annual Tax"
-        )
-        df_tax = df_tax.with_columns(
-            pl.col("Scenario")
-            .str.replace("current_tax", "Current Law")
-            .str.replace("custom_tax", "Custom Sandbox")
-        )
+    # Add scenario column
+    df = df.with_columns(pl.lit(scenario_name).alias("Scenario"))
 
-        tax_chart = (
-            alt.Chart(df_tax)
-            .mark_line()
-            .encode(
-                x=alt.X("market_value:Q", title="Real Market Value (NOK)"),
-                y=alt.Y("Annual Tax:Q", title="Annual Wealth Tax (NOK)"),
-                color="Scenario:N",
-                tooltip=["market_value", "Annual Tax", "Scenario"],
-            )
-            .properties(width="container", height=350, title="Wealth Tax Impact")
-        )
-
-        return mo.vstack([val_chart, tax_chart])
-
-    charts = create_charts(tax_df)
-    charts
-    return
+    return df
 
 
 if __name__ == "__main__":
