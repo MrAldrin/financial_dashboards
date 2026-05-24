@@ -35,43 +35,16 @@ def _():
     MIN_SCENARIOS = 1
     MAX_SCENARIOS = 4
     COLORS = ["#3498db", "#e74c3c", "#2ecc71", "#f39c12"]
-
-    def create_scenario_manager(default_values, max_scenarios=4):
-        get_scenarios, set_scenarios = mo.state([default_values] * max_scenarios)
-        get_visible_count, set_visible_count = mo.state(1)
-        return get_scenarios, set_scenarios, get_visible_count, set_visible_count
-
-    def create_add_remove_buttons(set_visible_count_fn):
-        add_button = mo.ui.button(
-            label="Add alternative",
-            on_change=lambda _: set_visible_count_fn(
-                lambda count: min(count + 1, MAX_SCENARIOS)
-            ),
-        )
-        remove_button = mo.ui.button(
-            label="Remove alternative",
-            on_change=lambda _: set_visible_count_fn(
-                lambda count: max(count - 1, MIN_SCENARIOS)
-            ),
-        )
-        return add_button, remove_button
-
-    return (
-        COLORS,
-        MAX_SCENARIOS,
-        MIN_SCENARIOS,
-        create_add_remove_buttons,
-        create_scenario_manager,
-    )
+    return COLORS, MAX_SCENARIOS, MIN_SCENARIOS
 
 
 @app.cell
-def _(create_add_remove_buttons, create_scenario_manager):
+def _(create_add_remove_buttons):
     default_sandbox_vals = {
         "tier1_rate": 25.0,
         "tier2_rate": 70.0,
         "valuation_threshold": 14_000_000.0,
-        "base_deduction": 1_700_000.0,
+        "base_deduction": 1_900_000.0,
         "tax_rate": 1.0,
     }
 
@@ -93,94 +66,7 @@ def _(create_add_remove_buttons, create_scenario_manager):
 
 
 @app.cell
-def _(COLORS):
-    def render_scenario_sliders(scenario_dict, color_index, keys, mo):
-        color = COLORS[color_index % len(COLORS)]
-        rendered_sliders = mo.hstack([scenario_dict[key] for key in keys])
-        colored_sliders = mo.vstack([rendered_sliders]).style(
-            {
-                "border-left": f"4px solid {color}",
-                "padding-left": "10px",
-                "margin": "10px 0",
-            }
-        )
-        return colored_sliders
-
-    def create_slider_ui(
-        alternatives,
-        render_fn,
-        get_visible_count_fn,
-        add_button,
-        remove_button,
-        min_scen,
-        max_scen,
-        mo,
-    ):
-        left_buttons = []
-        right_buttons = []
-        if get_visible_count_fn() < max_scen:
-            left_buttons.append(add_button)
-        if get_visible_count_fn() > min_scen:
-            right_buttons.append(remove_button)
-
-        ui_sliders_alternatives = mo.vstack(
-            [
-                *[
-                    render_fn(alternative, i, mo)
-                    for i, alternative in enumerate(alternatives)
-                ],
-                mo.hstack(
-                    [
-                        mo.hstack(left_buttons) if left_buttons else mo.Html(""),
-                        mo.hstack(right_buttons, justify="end")
-                        if right_buttons
-                        else mo.Html(""),
-                    ]
-                ),
-            ]
-        )
-        return ui_sliders_alternatives
-
-    def create_scenario_sliders(slider_configs, color_index, scenario_setter, mo):
-        slider_dict = mo.ui.dictionary(
-            {
-                key: mo.ui.slider(
-                    start=cfg["start"],
-                    stop=cfg["stop"],
-                    step=cfg.get("step", 1),
-                    value=cfg["value"],
-                    debounce=True,
-                    show_value=True,
-                    full_width=True,
-                    label=cfg["label"],
-                )
-                if "start" in cfg
-                else mo.ui.number(
-                    value=cfg["value"],
-                    step=cfg.get("step", 1),
-                    label=cfg["label"],
-                )
-                for key, cfg in slider_configs.items()
-            },
-            on_change=lambda new_vals: scenario_setter(
-                lambda scenarios: [
-                    (new_vals if i == color_index else s)
-                    for i, s in enumerate(scenarios)
-                ]
-            ),
-        )
-        return slider_dict
-
-    return create_scenario_sliders, create_slider_ui, render_scenario_sliders
-
-
-@app.cell
-def _(
-    create_scenario_sliders,
-    get_scenarios,
-    get_visible_count,
-    set_scenarios,
-):
+def _(get_scenarios, get_visible_count, set_scenarios):
     scenarios = get_scenarios()
     visible_count = get_visible_count()
 
@@ -203,7 +89,7 @@ def _(
             "label": "Valuation Threshold (NOK)",
         },
         "base_deduction": {
-            "value": 1_700_000.0,
+            "value": 1_900_000.0,
             "step": 100_000.0,
             "label": "Base Deduction (NOK)",
         },
@@ -233,12 +119,25 @@ def _(
 
 
 @app.cell
+def _(is_couple, mortgage_debt, other_net_wealth, ui_sliders):
+    ui_elements = mo.vstack(
+        [
+            mo.md("### Personal Context"),
+            is_couple,
+            mo.hstack([mortgage_debt, other_net_wealth]),
+            mo.md("### Policy Sandbox (Custom Rules)"),
+            ui_sliders,
+        ]
+    )
+    return (ui_elements,)
+
+
+@app.cell
 def _(
     MAX_SCENARIOS,
     MIN_SCENARIOS,
     add_button,
     alternatives,
-    create_slider_ui,
     get_visible_count,
     remove_button,
     render_scenario_sliders,
@@ -268,17 +167,31 @@ def _(
 
 
 @app.cell
-def _(is_couple, mortgage_debt, other_net_wealth, ui_sliders):
-    mo.vstack(
-        [
-            mo.md("### Personal Context"),
-            is_couple,
-            mo.hstack([mortgage_debt, other_net_wealth]),
-            mo.md("### Policy Sandbox (Custom Rules)"),
-            ui_sliders,
-        ]
-    )
+def _(ui_elements):
+    ui_elements
     return
+
+
+@app.cell
+def _(create_charts, tax_df):
+    create_charts(tax_df)
+    return
+
+
+@app.cell
+def _(alternatives, calculate_wealth_tax_df):
+    current_df = calculate_wealth_tax_df(
+        tier1_rate=25.0,
+        tier2_rate=70.0,
+        valuation_threshold=14_000_000.0,
+        base_deduction=1_900_000.0,
+        tax_rate=1.0,
+        scenario_name="Current Law",
+    )
+
+    df_alts = build_alternatives(alternatives, calculate_wealth_tax_df)
+    tax_df = pl.concat([current_df] + df_alts)
+    return (tax_df,)
 
 
 @app.cell
@@ -332,32 +245,18 @@ def _(is_couple, mortgage_debt, other_net_wealth):
     return (calculate_wealth_tax_df,)
 
 
-@app.cell
-def _(alternatives, calculate_wealth_tax_df):
-    def build_alternatives(alts, calc_fn):
-        df_alternatives = []
-        for i, _alternative in enumerate(alts):
-            kwargs = {key: _alternative[key].value for key in _alternative}
-            df = calc_fn(**kwargs, scenario_name=f"Alternative {i + 1}")
-            df_alternatives.append(df)
-        return df_alternatives
-
-    current_df = calculate_wealth_tax_df(
-        tier1_rate=25.0,
-        tier2_rate=70.0,
-        valuation_threshold=14_000_000.0,
-        base_deduction=1_700_000.0,
-        tax_rate=1.0,
-        scenario_name="Current Law",
-    )
-
-    df_alts = build_alternatives(alternatives, calculate_wealth_tax_df)
-    tax_df = pl.concat([current_df] + df_alts)
-    return (tax_df,)
+@app.function
+def build_alternatives(alts, calc_fn):
+    df_alternatives = []
+    for i, _alternative in enumerate(alts):
+        kwargs = {key: _alternative[key].value for key in _alternative}
+        df = calc_fn(**kwargs, scenario_name=f"Alternative {i + 1}")
+        df_alternatives.append(df)
+    return df_alternatives
 
 
 @app.cell
-def _(COLORS, tax_df):
+def _(COLORS):
     def create_charts(df):
         val_chart = (
             alt.Chart(df)
@@ -401,9 +300,108 @@ def _(COLORS, tax_df):
 
         return mo.vstack([val_chart, tax_chart])
 
-    charts = create_charts(tax_df)
-    charts
-    return
+    return (create_charts,)
+
+
+@app.cell
+def _(MAX_SCENARIOS, MIN_SCENARIOS):
+    def create_add_remove_buttons(set_visible_count_fn):
+        add_button = mo.ui.button(
+            label="Add alternative",
+            on_change=lambda _: set_visible_count_fn(
+                lambda count: min(count + 1, MAX_SCENARIOS)
+            ),
+        )
+        remove_button = mo.ui.button(
+            label="Remove alternative",
+            on_change=lambda _: set_visible_count_fn(
+                lambda count: max(count - 1, MIN_SCENARIOS)
+            ),
+        )
+        return add_button, remove_button
+
+    return (create_add_remove_buttons,)
+
+
+@app.function
+def create_scenario_manager(default_values, max_scenarios=4):
+    get_scenarios, set_scenarios = mo.state([default_values] * max_scenarios)
+    get_visible_count, set_visible_count = mo.state(1)
+    return get_scenarios, set_scenarios, get_visible_count, set_visible_count
+
+
+@app.cell
+def _(COLORS):
+    def render_scenario_sliders(scenario_dict, color_index, keys, mo):
+        color = COLORS[color_index % len(COLORS)]
+        rendered_sliders = mo.hstack([scenario_dict[key] for key in keys])
+        colored_sliders = mo.vstack([rendered_sliders]).style(
+            {
+                "border-left": f"4px solid {color}",
+                "padding-left": "10px",
+                "margin": "10px 0",
+            }
+        )
+        return colored_sliders
+
+    return (render_scenario_sliders,)
+
+
+@app.function
+def create_slider_ui(
+    alternatives,
+    render_fn,
+    get_visible_count_fn,
+    add_button,
+    remove_button,
+    min_scen,
+    max_scen,
+    mo,
+):
+    left_buttons = []
+    right_buttons = []
+    if get_visible_count_fn() < max_scen:
+        left_buttons.append(add_button)
+    if get_visible_count_fn() > min_scen:
+        right_buttons.append(remove_button)
+
+    ui_sliders_alternatives = mo.vstack(
+        [
+            *[
+                render_fn(alternative, i, mo)
+                for i, alternative in enumerate(alternatives)
+            ],
+            mo.hstack(
+                [
+                    mo.hstack(left_buttons) if left_buttons else mo.Html(""),
+                    mo.hstack(right_buttons, justify="end")
+                    if right_buttons
+                    else mo.Html(""),
+                ]
+            ),
+        ]
+    )
+    return ui_sliders_alternatives
+
+
+@app.function
+def create_scenario_sliders(slider_configs, color_index, scenario_setter, mo):
+    slider_dict = mo.ui.dictionary(
+        {
+            key: mo.ui.number(
+                value=cfg["value"],
+                step=cfg.get("step", 1),
+                label=cfg["label"],
+            )
+            for key, cfg in slider_configs.items()
+        },
+        on_change=lambda new_vals: scenario_setter(
+            lambda scenarios: [
+                (new_vals if i == color_index else s) for i, s in enumerate(scenarios)
+            ]
+        ),
+    )
+    return slider_dict
 
 
 if __name__ == "__main__":
