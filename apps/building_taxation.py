@@ -258,6 +258,10 @@ def build_alternatives(alts, calc_fn):
 @app.cell
 def _(COLORS):
     def create_charts(df):
+        num_alts = df["Scenario"].n_unique() - 1
+        domain = ["Current Law"] + [f"Alternative {i + 1}" for i in range(num_alts)]
+        range_ = ["#000000"] + COLORS[:num_alts]
+
         val_chart = (
             alt.Chart(df)
             .mark_line()
@@ -267,9 +271,8 @@ def _(COLORS):
                 color=alt.Color(
                     "Scenario:N",
                     scale=alt.Scale(
-                        domain=["Current Law"]
-                        + [f"Alternative {i + 1}" for i in range(4)],
-                        range=["#000000"] + COLORS,
+                        domain=domain,
+                        range=range_,
                     ),
                 ),
                 tooltip=["market_value", "valuation", "Scenario"],
@@ -288,9 +291,8 @@ def _(COLORS):
                 color=alt.Color(
                     "Scenario:N",
                     scale=alt.Scale(
-                        domain=["Current Law"]
-                        + [f"Alternative {i + 1}" for i in range(4)],
-                        range=["#000000"] + COLORS,
+                        domain=domain,
+                        range=range_,
                     ),
                 ),
                 tooltip=["market_value", "tax", "Scenario"],
