@@ -12,20 +12,18 @@ with app.setup:
 @app.cell
 def _():
     mo.md("""
-    # Norwegian Wealth Tax Calculator
-    *An interactive policy sandbox focusing on real estate valuation.*
+    # Norsk formueskattkalkulator
+    *En interaktiv politisk sandkasse med fokus på verdivurdering av eiendom.*
     """)
     return
 
 
 @app.cell
 def _():
-    is_couple = mo.ui.switch(label="Is Couple (Double base deduction)?")
-    mortgage_debt = mo.ui.number(
-        label="Mortgage Debt (NOK)", value=3000000, step=100000
-    )
+    is_couple = mo.ui.switch(label="Ektepar (Dobbelt bunnfradrag)?")
+    mortgage_debt = mo.ui.number(label="Gjeld (NOK)", value=3000000, step=100000)
     other_net_wealth = mo.ui.number(
-        label="Other Net Wealth (NOK)", value=500000, step=100000
+        label="Annen nettoformue (NOK)", value=500000, step=100000
     )
     return is_couple, mortgage_debt, other_net_wealth
 
@@ -75,29 +73,29 @@ def _(get_scenarios, get_visible_count, set_scenarios):
             "start": 0.0,
             "stop": 100.0,
             "step": 1.0,
-            "label": "Tier 1 Rate (%)",
+            "label": "Verdsettelse Trinn 1 (%)",
         },
         "tier2_rate": {
             "start": 0.0,
             "stop": 100.0,
             "step": 1.0,
-            "label": "Tier 2 Rate (%)",
+            "label": "Verdsettelse Trinn 2 (%)",
         },
         "valuation_threshold": {
-            "value": 14_000_000.0,
+            "value": 10_000_000.0,
             "step": 1_000_000.0,
-            "label": "Valuation Threshold (NOK)",
+            "label": "Verdsettelsesgrense (NOK)",
         },
         "base_deduction": {
             "value": 1_900_000.0,
             "step": 100_000.0,
-            "label": "Base Deduction (NOK)",
+            "label": "Bunnfradrag (NOK)",
         },
         "tax_rate": {
             "start": 0.0,
             "stop": 5.0,
             "step": 0.1,
-            "label": "Standard Tax Rate (%)",
+            "label": "Skatteprosent (%)",
         },
     }
 
@@ -122,10 +120,10 @@ def _(get_scenarios, get_visible_count, set_scenarios):
 def _(is_couple, mortgage_debt, other_net_wealth, ui_sliders):
     ui_elements = mo.vstack(
         [
-            mo.md("### Personal Context"),
+            mo.md("### Personlig økonomi"),
             is_couple,
             mo.hstack([mortgage_debt, other_net_wealth]),
-            mo.md("### Policy Sandbox (Custom Rules)"),
+            mo.md("### Politisk sandkasse (Egendefinerte regler)"),
             ui_sliders,
         ]
     )
@@ -186,7 +184,7 @@ def _(alternatives, calculate_wealth_tax_df):
         valuation_threshold=14_000_000.0,
         base_deduction=1_900_000.0,
         tax_rate=1.0,
-        scenario_name="Current Law",
+        scenario_name="Dagens regelverk",
     )
 
     df_alts = build_alternatives(alternatives, calculate_wealth_tax_df)
@@ -204,7 +202,7 @@ def _(is_couple, mortgage_debt, other_net_wealth):
         tax_rate: float,
         scenario_name: str,
     ) -> pl.DataFrame:
-        market_values = pl.Series("market_value", range(0, 40_500_000, 500_000))
+        market_values = pl.Series("market_value", range(0, 30_500_000, 500_000))
         df = pl.DataFrame([market_values])
 
         df = df.with_columns(
@@ -217,9 +215,7 @@ def _(is_couple, mortgage_debt, other_net_wealth):
         )
 
         df = df.with_columns(
-            net_wealth=pl.col("valuation")
-            + other_net_wealth.value
-            - mortgage_debt.value
+            net_wealth=pl.col("valuation") + other_net_wealth.value - mortgage_debt.value
         )
 
         actual_base_ded = base_deduction * 2 if is_couple.value else base_deduction
@@ -228,7 +224,7 @@ def _(is_couple, mortgage_debt, other_net_wealth):
             taxable_wealth=pl.max_horizontal(0, pl.col("net_wealth") - actual_base_ded)
         )
 
-        if scenario_name == "Current Law":
+        if scenario_name == "Dagens regelverk":
             df = df.with_columns(
                 tax=pl.when(pl.col("taxable_wealth") <= 20_000_000)
                 .then(pl.col("taxable_wealth") * 0.01)
@@ -250,7 +246,7 @@ def build_alternatives(alts, calc_fn):
     df_alternatives = []
     for i, _alternative in enumerate(alts):
         kwargs = {key: _alternative[key].value for key in _alternative}
-        df = calc_fn(**kwargs, scenario_name=f"Alternative {i + 1}")
+        df = calc_fn(**kwargs, scenario_name=f"Alternativ {i + 1}")
         df_alternatives.append(df)
     return df_alternatives
 
@@ -259,15 +255,15 @@ def build_alternatives(alts, calc_fn):
 def _(COLORS):
     def create_charts(df):
         num_alts = df["Scenario"].n_unique() - 1
-        domain = ["Current Law"] + [f"Alternative {i + 1}" for i in range(num_alts)]
+        domain = ["Dagens regelverk"] + [f"Alternativ {i + 1}" for i in range(num_alts)]
         range_ = ["#000000"] + COLORS[:num_alts]
 
         val_chart = (
             alt.Chart(df)
             .mark_line()
             .encode(
-                x=alt.X("market_value:Q", title="Real Market Value (NOK)"),
-                y=alt.Y("valuation:Q", title="Taxable Value (NOK)"),
+                x=alt.X("market_value:Q", title="Reell markedsverdi (NOK)"),
+                y=alt.Y("valuation:Q", title="Formuesverdi (NOK)"),
                 color=alt.Color(
                     "Scenario:N",
                     scale=alt.Scale(
@@ -278,7 +274,7 @@ def _(COLORS):
                 tooltip=["market_value", "valuation", "Scenario"],
             )
             .properties(
-                width="container", height=350, title="Valuation Curve (Formuesverdi)"
+                width="container", height=350, title="Verdsettelseskurve (Formuesverdi)"
             )
         )
 
@@ -286,8 +282,8 @@ def _(COLORS):
             alt.Chart(df)
             .mark_line()
             .encode(
-                x=alt.X("market_value:Q", title="Real Market Value (NOK)"),
-                y=alt.Y("tax:Q", title="Annual Wealth Tax (NOK)"),
+                x=alt.X("market_value:Q", title="Reell markedsverdi (NOK)"),
+                y=alt.Y("tax:Q", title="Årlig formuesskatt (NOK)"),
                 color=alt.Color(
                     "Scenario:N",
                     scale=alt.Scale(
@@ -297,7 +293,7 @@ def _(COLORS):
                 ),
                 tooltip=["market_value", "tax", "Scenario"],
             )
-            .properties(width="container", height=350, title="Wealth Tax Impact")
+            .properties(width="container", height=350, title="Formuesskatteffekt")
         )
 
         return mo.vstack([val_chart, tax_chart])
@@ -309,13 +305,13 @@ def _(COLORS):
 def _(MAX_SCENARIOS, MIN_SCENARIOS):
     def create_add_remove_buttons(set_visible_count_fn):
         add_button = mo.ui.button(
-            label="Add alternative",
+            label="Legg til alternativ",
             on_change=lambda _: set_visible_count_fn(
                 lambda count: min(count + 1, MAX_SCENARIOS)
             ),
         )
         remove_button = mo.ui.button(
-            label="Remove alternative",
+            label="Fjern alternativ",
             on_change=lambda _: set_visible_count_fn(
                 lambda count: max(count - 1, MIN_SCENARIOS)
             ),

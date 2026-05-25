@@ -8,7 +8,7 @@ The user uses this project for learning, so **you must explain complex architect
 
 - **Never** write code unless told so explicitly!
 - **Never** use @app.cell(hide_code=True)
-- **Never** restart the Marimo session. Marimo automatically watches the fole for changes
+- **Never** restart the Marimo session. Marimo automatically watches the file for changes
 
 Special repo folder:
 - plans/: 
