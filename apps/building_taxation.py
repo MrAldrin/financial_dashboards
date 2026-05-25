@@ -189,7 +189,9 @@ def _(alternatives, is_couple, mortgage_debt, other_net_wealth):
         tier2_rate=70.0,
         valuation_threshold=14_000_000.0,
         base_deduction=1_900_000.0,
-        tax_rate=1.0,
+        tax_rate_low=1.0,
+        tax_rate_high=1.1,
+        tax_high_threshold=20_000_000.0,
         scenario_name="Dagens regelverk",
         is_couple=is_couple.value,
         mortgage_debt=mortgage_debt.value,
@@ -213,15 +215,17 @@ def calculate_wealth_tax_df(
     tier2_rate: float,
     valuation_threshold: float,
     base_deduction: float,
-    tax_rate: float,
+    tax_rate_low: float,
+    tax_rate_high: float,
+    tax_high_threshold: float,
     scenario_name: str,
     is_couple: bool,
     mortgage_debt: float,
     other_net_wealth: float,
 ) -> pl.DataFrame:
-    market_values = pl.Series("market_value", range(0, 30_500_000, 500_000))
-    df = pl.DataFrame([market_values])
+    df = pl.DataFrame({"market_value": range(0, 30_500_000, 500_000)})
 
+    # Valuation logic (Real estate)
     df = df.with_columns(
         valuation=pl.when(pl.col("market_value") <= valuation_threshold)
         .then(pl.col("market_value") * (tier1_rate / 100))
@@ -241,18 +245,20 @@ def calculate_wealth_tax_df(
         taxable_wealth=pl.max_horizontal(0, pl.col("net_wealth") - actual_base_ded)
     )
 
-    if scenario_name == "Dagens regelverk":
-        df = df.with_columns(
-            tax=pl.when(pl.col("taxable_wealth") <= 20_000_000)
-            .then(pl.col("taxable_wealth") * 0.01)
-            .otherwise(
-                20_000_000 * 0.01 + (pl.col("taxable_wealth") - 20_000_000) * 0.011
-            )
-        )
-    else:
-        df = df.with_columns(tax=pl.col("taxable_wealth") * (tax_rate / 100))
+    # Tax calculation logic (Dynamic tiers)
+    rate_low = tax_rate_low / 100
+    rate_high = tax_rate_high / 100
 
-    df = df.with_columns(pl.lit(scenario_name).alias("Scenario"))
+    df = df.with_columns(
+        tax=pl.when(pl.col("taxable_wealth") <= tax_high_threshold)
+        .then(pl.col("taxable_wealth") * rate_low)
+        .otherwise(
+            tax_high_threshold * rate_low
+            + (pl.col("taxable_wealth") - tax_high_threshold) * rate_high
+        ),
+        Scenario=pl.lit(scenario_name),
+    )
+
     return df
 
 
@@ -260,9 +266,17 @@ def calculate_wealth_tax_df(
 def build_alternatives(alts, calc_fn, is_couple, mortgage_debt, other_net_wealth):
     df_alternatives = []
     for i, _alternative in enumerate(alts):
-        kwargs = {key: _alternative[key].value for key in _alternative}
+        # Extract values from UI components
+        vals = {key: _alternative[key].value for key in _alternative}
+
+        # Pop tax_rate and use it for both tiers
+        alt_tax_rate = vals.pop("tax_rate")
+
         df = calc_fn(
-            **kwargs,
+            **vals,
+            tax_rate_low=alt_tax_rate,
+            tax_rate_high=alt_tax_rate,
+            tax_high_threshold=float("inf"),
             scenario_name=f"Alternativ {i + 1}",
             is_couple=is_couple,
             mortgage_debt=mortgage_debt,
