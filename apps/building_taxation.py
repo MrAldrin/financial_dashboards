@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.23.8"
+__generated_with = "0.23.9"
 app = marimo.App(width="full", sql_output="polars")
 
 with app.setup:
@@ -30,141 +30,116 @@ def _():
 
 @app.cell
 def _():
-    MIN_SCENARIOS = 1
-    MAX_SCENARIOS = 4
     COLORS = ["#3498db", "#e74c3c", "#2ecc71", "#f39c12"]
-    return COLORS, MAX_SCENARIOS, MIN_SCENARIOS
-
-
-@app.cell
-def _(MAX_SCENARIOS, MIN_SCENARIOS):
-    default_sandbox_vals = {
-        "tier1_rate": 25.0,
-        "tier2_rate": 70.0,
-        "valuation_threshold": 14_000_000.0,
-        "base_deduction": 1_900_000.0,
-        "tax_rate": 1.0,
-    }
-
-    (
-        get_scenarios,
-        set_scenarios,
-        get_visible_count,
-        set_visible_count,
-    ) = create_scenario_manager(default_sandbox_vals)
-
-    add_button, remove_button = create_add_remove_buttons(
-        set_visible_count, MIN_SCENARIOS, MAX_SCENARIOS, mo
-    )
-    return (
-        add_button,
-        get_scenarios,
-        get_visible_count,
-        remove_button,
-        set_scenarios,
-    )
-
-
-@app.cell
-def _(get_scenarios, get_visible_count, set_scenarios):
-    scenarios = get_scenarios()
-    visible_count = get_visible_count()
-
-    SANDBOX_CONFIGS = {
-        "tier1_rate": {
-            "start": 0.0,
-            "stop": 100.0,
-            "step": 1.0,
-            "label": "Verdsettelse Trinn 1 (%)",
-        },
-        "tier2_rate": {
-            "start": 0.0,
-            "stop": 100.0,
-            "step": 1.0,
-            "label": "Verdsettelse Trinn 2 (%)",
-        },
-        "valuation_threshold": {
-            "value": 10_000_000.0,
-            "step": 1_000_000.0,
-            "label": "Verdsettelsesgrense (NOK)",
-        },
-        "base_deduction": {
-            "value": 1_900_000.0,
-            "step": 100_000.0,
-            "label": "Bunnfradrag (NOK)",
-        },
-        "tax_rate": {
-            "start": 0.0,
-            "stop": 5.0,
-            "step": 0.1,
-            "label": "Skatteprosent (%)",
-        },
-    }
-
-    alternatives = mo.ui.array(
+    get_tiers, set_tiers = mo.state(
         [
-            create_scenario_sliders(
-                {
-                    key: {**SANDBOX_CONFIGS[key], "value": scenario[key]}
-                    for key in SANDBOX_CONFIGS
-                },
-                color_index=i,
-                scenario_setter=set_scenarios,
-                mo=mo,
-            )
-            for i, scenario in enumerate(scenarios[:visible_count])
+            {"limit": 12_000_000, "rate": 30.0},
+            {"limit": None, "rate": 75.0},
         ]
     )
-    return (alternatives,)
+    base_deduction = mo.ui.number(
+        label="Bunnfradrag (NOK)", value=1_900_000, step=100_000
+    )
+    tax_rate_ui = mo.ui.number(
+        label="Skatteprosent (%)", value=1.0, step=0.1
+    )
+    return COLORS, base_deduction, get_tiers, set_tiers, tax_rate_ui
 
 
 @app.cell
-def _(is_couple, mortgage_debt, other_net_wealth, ui_sliders):
+def _(get_tiers, set_tiers):
+    def add_tier():
+        current = get_tiers()
+        last_limit = 0
+        for t in current:
+            if t["limit"] is not None:
+                last_limit = max(last_limit, t["limit"])
+        new_limit = last_limit + 5_000_000
+        new_tier = {"limit": new_limit, "rate": 50.0}
+        new_tiers = []
+        inserted = False
+        for t in current:
+            if t["limit"] is None and not inserted:
+                new_tiers.append(new_tier)
+                inserted = True
+            new_tiers.append(t)
+        set_tiers(new_tiers)
+
+    def remove_tier(index):
+        current = get_tiers()
+        if len(current) > 1:
+            new_tiers = [t for i, t in enumerate(current) if i != index]
+            set_tiers(new_tiers)
+
+    def update_tier(index, key, value):
+        current = get_tiers()
+        new_tiers = list(current)
+        new_tiers[index] = {**new_tiers[index], key: value}
+        set_tiers(new_tiers)
+
+    return add_tier, remove_tier, update_tier
+
+
+@app.cell
+def _(add_tier, get_tiers, remove_tier, update_tier):
+    current_tiers = get_tiers()
+    tier_rows = []
+    for i, tier in enumerate(current_tiers):
+        is_last = tier["limit"] is None
+        rate_input = mo.ui.number(
+            value=tier["rate"],
+            label=f"Sats % (Trinn {i+1})",
+            on_change=lambda v, idx=i: update_tier(idx, "rate", v),
+        )
+        inputs = [rate_input]
+        if not is_last:
+            limit_input = mo.ui.number(
+                value=tier["limit"],
+                label=f"Grense NOK (Trinn {i+1})",
+                step=1_000_000,
+                on_change=lambda v, idx=i: update_tier(idx, "limit", v),
+            )
+            inputs.append(limit_input)
+        else:
+            inputs.append(
+                mo.md(f"Alt over forrige grense").style({"padding-top": "25px"})
+            )
+        if not is_last:
+            remove_btn = mo.ui.button(
+                label="✖", on_change=lambda _, idx=i: remove_tier(idx), kind="neutral"
+            )
+            inputs.append(remove_btn)
+        tier_rows.append(mo.hstack(inputs, justify="start", align="center"))
+    add_btn = mo.ui.button(
+        label="Legg til verdsettelsesgrense", on_change=lambda _: add_tier()
+    )
+    valuation_ui = mo.vstack(
+        [mo.md("#### Verdsettelsestrinn:"), *tier_rows, add_btn]
+    )
+    return (valuation_ui,)
+
+
+@app.cell
+def _(
+    base_deduction,
+    is_couple,
+    mortgage_debt,
+    other_net_wealth,
+    tax_rate_ui,
+    valuation_ui,
+):
     ui_elements = mo.vstack(
         [
             mo.md("### Personlig økonomi"),
             is_couple,
             mo.hstack([mortgage_debt, other_net_wealth]),
             mo.md("### Politisk sandkasse (Egendefinerte regler)"),
-            ui_sliders,
+            base_deduction,
+            tax_rate_ui,
+            valuation_ui,
         ]
     )
     return (ui_elements,)
-
-
-@app.cell
-def _(
-    COLORS,
-    MAX_SCENARIOS,
-    MIN_SCENARIOS,
-    add_button,
-    alternatives,
-    get_visible_count,
-    remove_button,
-):
-    ui_sliders = create_slider_ui(
-        alternatives,
-        lambda d, i, mo: render_scenario_sliders(
-            d,
-            i,
-            [
-                "tier1_rate",
-                "tier2_rate",
-                "valuation_threshold",
-                "base_deduction",
-                "tax_rate",
-            ],
-            COLORS,
-            mo,
-        ),
-        get_visible_count,
-        add_button,
-        remove_button,
-        MIN_SCENARIOS,
-        MAX_SCENARIOS,
-        mo,
-    )
-    return (ui_sliders,)
 
 
 @app.cell
@@ -183,114 +158,80 @@ def _(COLORS, tax_df):
 
 
 @app.cell
-def _(alternatives, is_couple, mortgage_debt, other_net_wealth):
+def _(
+    base_deduction,
+    get_tiers,
+    is_couple,
+    mortgage_debt,
+    other_net_wealth,
+    tax_rate_ui,
+):
     current_df = calculate_wealth_tax_df(
-        tier1_rate=25.0,
-        tier2_rate=70.0,
-        valuation_threshold=14_000_000.0,
+        tiers=[{"limit": 14_000_000, "rate": 25.0}, {"limit": None, "rate": 70.0}],
         base_deduction=1_900_000.0,
-        tax_rate_low=1.0,
-        tax_rate_high=1.1,
-        tax_high_threshold=20_000_000.0,
+        tax_rate=1.0,
         scenario_name="Dagens regelverk",
         is_couple=is_couple.value,
         mortgage_debt=mortgage_debt.value,
         other_net_wealth=other_net_wealth.value,
     )
 
-    df_alts = build_alternatives(
-        alternatives,
-        calculate_wealth_tax_df,
+    custom_df = calculate_wealth_tax_df(
+        tiers=get_tiers(),
+        base_deduction=base_deduction.value,
+        tax_rate=tax_rate_ui.value,
+        scenario_name="Din sandkasse",
         is_couple=is_couple.value,
         mortgage_debt=mortgage_debt.value,
         other_net_wealth=other_net_wealth.value,
     )
-    tax_df = pl.concat([current_df] + df_alts)
+    tax_df = pl.concat([current_df, custom_df])
     return (tax_df,)
 
 
 @app.function
 def calculate_wealth_tax_df(
-    tier1_rate: float,
-    tier2_rate: float,
-    valuation_threshold: float,
+    tiers: list[dict],
     base_deduction: float,
-    tax_rate_low: float,
-    tax_rate_high: float,
-    tax_high_threshold: float,
+    tax_rate: float,
     scenario_name: str,
     is_couple: bool,
     mortgage_debt: float,
     other_net_wealth: float,
 ) -> pl.DataFrame:
     df = pl.DataFrame({"market_value": range(0, 30_500_000, 500_000)})
-
-    # Valuation logic (Real estate)
-    df = df.with_columns(
-        valuation=pl.when(pl.col("market_value") <= valuation_threshold)
-        .then(pl.col("market_value") * (tier1_rate / 100))
-        .otherwise(
-            valuation_threshold * (tier1_rate / 100)
-            + (pl.col("market_value") - valuation_threshold) * (tier2_rate / 100)
-        )
+    sorted_tiers = sorted(
+        tiers, key=lambda x: x["limit"] if x["limit"] is not None else float("inf")
     )
-
+    valuation_expr = pl.lit(0.0)
+    prev_limit = 0.0
+    for tier in sorted_tiers:
+        limit = tier["limit"] if tier["limit"] is not None else float("inf")
+        rate = tier.get("rate", 0.0) / 100
+        portion = pl.when(pl.col("market_value") > prev_limit).then(
+            pl.min_horizontal(pl.col("market_value"), limit) - prev_limit
+        ).otherwise(0.0)
+        valuation_expr += portion * rate
+        prev_limit = limit
+    df = df.with_columns(valuation=valuation_expr)
     df = df.with_columns(
         net_wealth=pl.col("valuation") + other_net_wealth - mortgage_debt
     )
-
     actual_base_ded = base_deduction * 2 if is_couple else base_deduction
-
     df = df.with_columns(
         taxable_wealth=pl.max_horizontal(0, pl.col("net_wealth") - actual_base_ded)
     )
-
-    # Tax calculation logic (Dynamic tiers)
-    rate_low = tax_rate_low / 100
-    rate_high = tax_rate_high / 100
-
     df = df.with_columns(
-        tax=pl.when(pl.col("taxable_wealth") <= tax_high_threshold)
-        .then(pl.col("taxable_wealth") * rate_low)
-        .otherwise(
-            tax_high_threshold * rate_low
-            + (pl.col("taxable_wealth") - tax_high_threshold) * rate_high
-        ),
+        tax=pl.col("taxable_wealth") * (tax_rate / 100),
         Scenario=pl.lit(scenario_name),
     )
-
     return df
 
 
 @app.function
-def build_alternatives(alts, calc_fn, is_couple, mortgage_debt, other_net_wealth):
-    df_alternatives = []
-    for i, _alternative in enumerate(alts):
-        # Extract values from UI components
-        vals = {key: _alternative[key].value for key in _alternative}
-
-        # Pop tax_rate and use it for both tiers
-        alt_tax_rate = vals.pop("tax_rate")
-
-        df = calc_fn(
-            **vals,
-            tax_rate_low=alt_tax_rate,
-            tax_rate_high=alt_tax_rate,
-            tax_high_threshold=float("inf"),
-            scenario_name=f"Alternativ {i + 1}",
-            is_couple=is_couple,
-            mortgage_debt=mortgage_debt,
-            other_net_wealth=other_net_wealth,
-        )
-        df_alternatives.append(df)
-    return df_alternatives
-
-
-@app.function
 def get_chart_domain_and_range(df, colors):
-    num_alts = df["Scenario"].n_unique() - 1
-    domain = ["Dagens regelverk"] + [f"Alternativ {i + 1}" for i in range(num_alts)]
-    range_ = ["#000000"] + colors[:num_alts]
+    domain = ["Dagens regelverk", "Din sandkasse"]
+    range_ = ["#000000", colors[0]]
     return domain, range_
 
 
@@ -332,101 +273,6 @@ def create_tax_chart(df, colors, get_chart_domain_and_range_fn):
         )
         .properties(width="container", height=350, title="Formuesskatteffekt")
     )
-
-
-@app.function
-def create_add_remove_buttons(set_visible_count_fn, min_scenarios, max_scenarios, mo):
-    add_button = mo.ui.button(
-        label="Legg til alternativ",
-        on_change=lambda _: set_visible_count_fn(
-            lambda count: min(count + 1, max_scenarios)
-        ),
-    )
-    remove_button = mo.ui.button(
-        label="Fjern alternativ",
-        on_change=lambda _: set_visible_count_fn(
-            lambda count: max(count - 1, min_scenarios)
-        ),
-    )
-    return add_button, remove_button
-
-
-@app.function
-def create_scenario_manager(default_values, max_scenarios=4):
-    get_scenarios, set_scenarios = mo.state([default_values] * max_scenarios)
-    get_visible_count, set_visible_count = mo.state(1)
-    return get_scenarios, set_scenarios, get_visible_count, set_visible_count
-
-
-@app.function
-def render_scenario_sliders(scenario_dict, color_index, keys, colors, mo):
-    color = colors[color_index % len(colors)]
-    rendered_sliders = mo.hstack([scenario_dict[key] for key in keys])
-    colored_sliders = mo.vstack([rendered_sliders]).style(
-        {
-            "border-left": f"4px solid {color}",
-            "padding-left": "10px",
-            "margin": "10px 0",
-        }
-    )
-    return colored_sliders
-
-
-@app.function
-def create_slider_ui(
-    alternatives,
-    render_fn,
-    get_visible_count_fn,
-    add_button,
-    remove_button,
-    min_scen,
-    max_scen,
-    mo,
-):
-    left_buttons = []
-    right_buttons = []
-    if get_visible_count_fn() < max_scen:
-        left_buttons.append(add_button)
-    if get_visible_count_fn() > min_scen:
-        right_buttons.append(remove_button)
-
-    ui_sliders_alternatives = mo.vstack(
-        [
-            *[
-                render_fn(alternative, i, mo)
-                for i, alternative in enumerate(alternatives)
-            ],
-            mo.hstack(
-                [
-                    mo.hstack(left_buttons) if left_buttons else mo.Html(""),
-                    mo.hstack(right_buttons, justify="end")
-                    if right_buttons
-                    else mo.Html(""),
-                ]
-            ),
-        ]
-    )
-    return ui_sliders_alternatives
-
-
-@app.function
-def create_scenario_sliders(slider_configs, color_index, scenario_setter, mo):
-    slider_dict = mo.ui.dictionary(
-        {
-            key: mo.ui.number(
-                value=cfg["value"],
-                step=cfg.get("step", 1),
-                label=cfg["label"],
-            )
-            for key, cfg in slider_configs.items()
-        },
-        on_change=lambda new_vals: scenario_setter(
-            lambda scenarios: [
-                (new_vals if i == color_index else s) for i, s in enumerate(scenarios)
-            ]
-        ),
-    )
-    return slider_dict
 
 
 if __name__ == "__main__":
