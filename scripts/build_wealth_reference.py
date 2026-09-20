@@ -9,21 +9,21 @@ No runtime network request or local Python module is needed by the WASM app.
 """
 
 import argparse
+import ast
 import hashlib
 import json
 from pathlib import Path
 import pprint
 import re
 
-import pymupdf
-
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT = ROOT / "data/wealth/2026-09-20"
-START = "# BEGIN GENERATED PUBLIC REFERENCE\n"
-END = "# END GENERATED PUBLIC REFERENCE\n"
+COMPOSITION_SNAPSHOT = ROOT / "data/wealth/2026-09-20-feasibility"
 
 
 def derive_reference() -> dict:
+    import pymupdf
+
     article = (SNAPSHOT / "article.html").read_text()
     charts = []
     for text in re.findall(r"<script[^>]*>(.*?)</script>", article, re.S):
@@ -86,44 +86,125 @@ def derive_reference() -> dict:
     }
 
 
+def derive_household_composition(table: dict, metadata: dict) -> dict:
+    """Extract unconditional means by code; retain published rounding residuals."""
+    if (
+        table["id"] != ["Hushaldstype", "ContentsCode", "Tid"]
+        or table["size"] != [16, 18, 1]
+        or table["dimension"]["Tid"]["category"]["index"] != {"2024": 0}
+        or len(table["value"]) != 288
+    ):
+        raise ValueError("Unexpected 10316 dimensions or reference year")
+    groups = table["dimension"]["Hushaldstype"]["category"]
+    metrics = table["dimension"]["ContentsCode"]["category"]
+    fields = {
+        "primary_housing": "MarknverdiPri",
+        "secondary_housing": "MarknverdiSek",
+        "real_assets": "Realkapital",
+        "financial_assets": "SkattplKapital",
+        "debt": "Gjeld",
+        "net_wealth": "FormueNettBerekn",
+        "households": "Hushald",
+    }
+    if set(groups["index"]) != {str(n) for n in range(50, 66)}:
+        raise ValueError("Expected national total and 15 household types")
+    rows = []
+    for code, position in sorted(groups["index"].items(), key=lambda pair: pair[1]):
+        row = {"code": code, "label": groups["label"][code]}
+        for field, metric in fields.items():
+            expected_unit = "hushald" if field == "households" else "kr"
+            if (
+                metadata["dimension"]["ContentsCode"]["category"]["unit"][metric][
+                    "base"
+                ]
+                != expected_unit
+            ):
+                raise ValueError(f"Unexpected unit for {metric}")
+            value = table["value"][position * 18 + metrics["index"][metric]]
+            if not isinstance(value, int) or (field != "net_wealth" and value < 0):
+                raise ValueError(f"Missing or invalid mean/count: {code}/{metric}")
+            row[field] = value
+        row["other_real_assets"] = (
+            row["real_assets"] - row["primary_housing"] - row["secondary_housing"]
+        )
+        row["accounting_difference"] = (
+            row["real_assets"]
+            + row["financial_assets"]
+            - row["debt"]
+            - row["net_wealth"]
+        )
+        if row["other_real_assets"] < 0 or abs(row["accounting_difference"]) > 100:
+            raise ValueError(f"Unexpected component accounting: {code}")
+        rows.append(row)
+    national = next(row for row in rows if row["code"] == "50")
+    types = [row for row in rows if row["code"] != "50"]
+    if sum(row["households"] for row in types) != national["households"]:
+        raise ValueError("Household-type counts do not reconcile")
+    return {
+        "schema_version": 1,
+        "snapshot": "2026-09-20-feasibility",
+        "table": "10316",
+        "year": 2024,
+        "updated": table["updated"],
+        "national": national,
+        "groups": types,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
-    manifest = json.loads((SNAPSHOT / "manifest.json").read_text())
-    for source in manifest["sources"]:
-        actual = hashlib.sha256((SNAPSHOT / source["file"]).read_bytes()).hexdigest()
-        if actual != source["sha256"]:
-            raise ValueError(f"Snapshot checksum mismatch: {source['file']}")
-    data = derive_reference()
+    for snapshot in (SNAPSHOT, COMPOSITION_SNAPSHOT):
+        manifest = json.loads((snapshot / "manifest.json").read_text())
+        for source in manifest["sources"]:
+            actual = hashlib.sha256(
+                (snapshot / source["file"]).read_bytes()
+            ).hexdigest()
+            if actual != source["sha256"]:
+                raise ValueError(f"Snapshot checksum mismatch: {source['file']}")
+    references = [
+        ("PUBLIC REFERENCE", "public_reference_data", derive_reference()),
+        (
+            "HOUSEHOLD COMPOSITION",
+            "household_composition_reference",
+            derive_household_composition(
+                json.loads((COMPOSITION_SNAPSHOT / "10316.json").read_text()),
+                json.loads((COMPOSITION_SNAPSHOT / "10316-meta.json").read_text()),
+            ),
+        ),
+    ]
+    # The original derived artifact is immutable, not an output to overwrite.
+    if references[0][2] != json.loads((SNAPSHOT / "derived.json").read_text()):
+        raise ValueError("Original reference changed; use a new snapshot")
     notebook = ROOT / "apps/building_taxation.py"
     text = notebook.read_text()
+    for marker, name, data in references:
+        if args.check:
+            # Compare values, not formatting: Ruff may reflow generated literals.
+            function = next(
+                n
+                for n in ast.parse(text).body
+                if isinstance(n, ast.FunctionDef) and n.name == name
+            )
+            embedded = ast.literal_eval(
+                next(n.value for n in function.body if isinstance(n, ast.Return))
+            )
+            if embedded != data:
+                raise ValueError(f"Embedded {name} differs; regenerate reference")
+        else:
+            literal = pprint.pformat(data, width=100, sort_dicts=False)
+            body = f'@app.function\ndef {name}() -> dict:\n    """Public aggregates; generated offline by scripts/build_wealth_reference.py."""\n    return '
+            body += literal.replace("\n", "\n    ") + "\n\n\n"
+            start = f"# BEGIN GENERATED {marker}\n"
+            end = f"# END GENERATED {marker}\n"
+            before, rest = text.split(start)
+            _, after = rest.split(end)
+            text = before + start + body + end + after
     if args.check:
-        # Compare values, not formatting: Ruff may reflow the generated literal.
-        import ast
-
-        tree = ast.parse(text)
-        function = next(
-            n
-            for n in tree.body
-            if isinstance(n, ast.FunctionDef) and n.name == "public_reference_data"
-        )
-        embedded = ast.literal_eval(
-            next(n.value for n in function.body if isinstance(n, ast.Return))
-        )
-        if embedded != data:
-            raise ValueError("Embedded data differs; regenerate reference")
-        print("Snapshot checksums and embedded reference verified")
+        print("Snapshot checksums and both embedded references verified")
     else:
-        literal = pprint.pformat(data, width=100, sort_dicts=False)
-        body = '@app.function\ndef public_reference_data() -> dict:\n    """Public aggregates; generated offline by scripts/build_wealth_reference.py."""\n    return '
-        body += literal.replace("\n", "\n    ") + "\n\n\n"
-        before, rest = text.split(START)
-        _, after = rest.split(END)
-        notebook.write_text(before + START + body + END + after)
-        (SNAPSHOT / "derived.json").write_text(
-            json.dumps(data, ensure_ascii=False, indent=2) + "\n"
-        )
+        notebook.write_text(text)
 
 
 if __name__ == "__main__":

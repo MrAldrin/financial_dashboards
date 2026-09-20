@@ -11,7 +11,7 @@ uv run scripts/build_wealth_reference.py --check
 uv run python -m unittest discover -s tests
 ```
 
-The generator uses PyMuPDF **offline only**, not as a notebook dependency. The generated function is enclosed by named markers. Ruff formatting is safe; verification compares values. Raw JSON-stat2 responses preserve dimensions, codes, units, source revisions and missing values.
+The generator uses PyMuPDF **offline only**, not as a notebook dependency. Two independently sourced functions are enclosed by named markers: the original `public_reference_data()` and schema-version-1 `household_composition_reference()` from `2026-09-20-feasibility/`. Ruff formatting is safe; verification compares values. Generation writes only the notebook, never into either immutable snapshot; it also checks the original reference against its archived `derived.json`. Raw JSON-stat2 responses preserve dimensions, codes, units, source revisions and missing values.
 
 ## Evidence and transformations
 
@@ -89,6 +89,16 @@ Additional claims ledger:
 | 10316 notes, family-statistics definitions and existing legal audit | Statistical couples include cohabitants and some separated couples; they cannot be assigned joint wealth-tax assessment automatically. |
 
 **Recommendation, not implementation approval:** use 10316 for a separate descriptive household-type composition reference (or 10317 for age), retaining the verified net-wealth-decile financial-assets/residual view. No matching primary-housing/debt components by that same wealth rank, or complete property-to-tax-unit mapping, were found within the bounded search. A national-profile model would still require explicit assumptions, not a join of unrelated marginal tables. Human visual/scope choices remain at the final gate.
+
+## Descriptive household-type composition — implemented after approval
+
+`household_composition_reference()` embeds 2024 unconditional means and counts from archived `2026-09-20-feasibility/10316.json`, with table ID, source revision, snapshot and schema version. The original reference remains separate and unchanged. No new download, copied browser asset, runtime dependency or packaging change is needed. Table 10317 remains an alternative, not an additional implemented view.
+
+The chart shows the 15 disjoint household types in SSB order, **not wealth rank**. The national row (`50`) is retained separately for validation, never stacked or added as a sixteenth group. Type counts sum to 2,616,826. The five plotted components are primary housing, secondary housing, **derived other real assets = real capital − primary − secondary housing**, financial assets and negative total debt. Total real capital is retained for auditing but never stacked alongside its subcomponents. Published net wealth is an independent diamond; its tooltip includes household count and `component sum − published net wealth`. The source's −100/0/+100 NOK discrepancies are preserved, not calibrated away.
+
+These are means over all households in each type, including nonowners, not owner-only or typical actual portfolios. The UI labels the 2024 reference year, student/lone-under-18 exclusions, mixed market/tax valuation and rounding; definitions explain farm dwellings, pension exclusions, full debt and statistical couples versus legal tax units. The chart has no policy or personal-control dependency. It neither populates the calculator nor weights/calibrates the common-profile illustration: nonlinear tax on a group mean is not average tax. Existing decile residual and full curves remain intact.
+
+Validation: extraction checks dimensions/year, metric units, nonmissing means, nonnegative asset/debt amounts, accounting and group counts. Tests compare all selected cells with the archived source, validate signed chart data/schema, reject invalid sources and preserve the original embedded reference. The browser checker confirms this specific chart's canvas and 75 component rows (15 negative debt rows), plus its unchanged specification through 14m→10m→14m. Automated checks do not replace the deferred human review of chart density, labels and mobile layout.
 
 ## Remaining data gaps
 

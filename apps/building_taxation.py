@@ -820,6 +820,144 @@ def _(reference):
     return financial_mean_chart, decile_composition, top_composition, net_balance_chart
 
 
+@app.cell
+def _():
+    household_reference = household_composition_reference()
+    household_composition_chart = create_household_composition_chart(
+        household_reference
+    )
+    mo.vstack(
+        [
+            mo.md("""
+        ### Formuens sammensetning etter husholdningstype — 2024
+
+        **Gjennomsnitt for alle husholdninger i hver type, også dem som ikke eier bolig.**
+        Husholdningstype er ikke formuesrang. Dette er ikke typiske faktiske husholdninger.
+        Eiendeler vises over null, **samlet gjeld** under null og publisert nettoformue
+        som svart diamant. Gjeld er ikke bare boliglån; figuren viser ikke boligegenkapital.
+        **Blandet verdsettelse:** SSB kombinerer beregnede markedsverdier og enkelte
+        skatteverdier; dette er ikke kalkulatorens skattebase.
+        Tallene er faste referanser og endres ikke av skattevalgene over.
+        """),
+            household_composition_chart,
+            mo.md("""
+        [SSB 10316](https://www.ssb.no/statbank/table/10316), 2024, korrigert 12.02.2026;
+        kildesnapshot 20.09.2026. Studenthusholdninger og aleneboende barn under 18 år
+        er utelatt. Landstotalen på **2 616 826 husholdninger** er ikke en ekstra type.
+        **Avrundede gjennomsnitt beholdes:** komponentenes sum kan avvike fra publisert
+        nettoformue med opptil 100 kr. Hold pekeren over diamantene for avvik og antall.
+        """),
+            mo.accordion(
+                {
+                    "Definisjoner og begrensninger — husholdningstype": mo.md("""
+        Andre realaktiva = beregnet realkapital minus primærbolig minus sekundærbolig.
+        Total realkapital stables derfor ikke i tillegg til delene.
+        **Blandet verdsettelse:** bolig, næringseiendom, skog og gårdsbruk bruker
+        beregnede markedsverdier; annen eiendom, driftsmidler og innbo kan ha skatteverdier.
+        Våningshus på gårdsbruk inngår ikke i primærboligkomponenten.
+        Finansformue følger SSBs statistiske definisjon før aktuelle verdsettingsrabatter,
+        ikke kalkulatorens skattebase; enkelte eiendeler er ufullstendig verdsatt.
+        Pensjonsrettigheter er utelatt. Gjeld er før skatterelaterte reduksjoner og
+        inkluderer andeler av boligselskapenes gjeld.
+
+        Par omfatter også samboere og er ikke automatisk én felles skatteenhet.
+        Gruppemidlene lastes ikke inn i kalkulatoren eller brukes som nasjonale vekter:
+        **skatt på gjennomsnittsformuen er ikke gjennomsnittlig skatt**.
+        Kilden gir ikke fordelingen innad i gruppene eller bolig og gjeld etter formuesdesil.
+        [SSBs definisjoner](https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/statistikk/inntekts-og-formuesstatistikk-for-husholdninger).
+        """)
+                }
+            ),
+        ]
+    )
+    return (household_composition_chart,)
+
+
+@app.function
+def create_household_composition_chart(reference: dict) -> alt.LayerChart:
+    """Display disjoint asset components, negative total debt and independent net wealth."""
+    frame = pl.DataFrame(reference["groups"])
+    components = {
+        "primary_housing": "Primærbolig",
+        "secondary_housing": "Sekundærbolig",
+        "other_real_assets": "Andre realaktiva (beregnet)",
+        "financial_assets": "Finansformue",
+        "debt": "Samlet gjeld",
+    }
+    amounts = (
+        frame.with_columns(debt=-pl.col("debt"))
+        .unpivot(
+            on=list(components),
+            index=["code", "label"],
+            variable_name="component",
+            value_name="amount",
+        )
+        .with_columns(pl.col("component").replace_strict(components))
+    )
+    x = alt.X(
+        "label:N",
+        sort=frame["label"].to_list(),
+        title="Husholdningstype (SSBs rekkefølge, ikke formuesrang)",
+        axis=alt.Axis(labelAngle=-45, labelLimit=280),
+    )
+    bars = (
+        alt.Chart(amounts)
+        .mark_bar()
+        .encode(
+            x=x,
+            y=alt.Y(
+                "amount:Q", stack="zero", title="Gjennomsnitt per husholdning (NOK)"
+            ),
+            color=alt.Color(
+                "component:N",
+                title="Komponent",
+                scale=alt.Scale(
+                    domain=list(components.values()),
+                    range=["#0072b2", "#56b4e9", "#e69f00", "#009e73", "#999999"],
+                ),
+                legend=alt.Legend(orient="top", columns=3),
+            ),
+            tooltip=[
+                alt.Tooltip("label:N", title="Husholdningstype"),
+                alt.Tooltip("component:N", title="Komponent"),
+                alt.Tooltip("amount:Q", title="NOK", format=",.0f"),
+            ],
+        )
+    )
+    markers = (
+        alt.Chart(frame)
+        .mark_point(shape="diamond", filled=True, color="#222", size=85)
+        .encode(
+            x=x,
+            y="net_wealth:Q",
+            tooltip=[
+                alt.Tooltip("label:N", title="Husholdningstype"),
+                alt.Tooltip(
+                    "net_wealth:Q", title="Publisert nettoformue", format=",.0f"
+                ),
+                alt.Tooltip(
+                    "households:Q", title="Antall husholdninger", format=",.0f"
+                ),
+                alt.Tooltip(
+                    "accounting_difference:Q",
+                    title="Komponentsum minus nettoformue (kr)",
+                    format="+,.0f",
+                ),
+            ],
+        )
+    )
+    zero = (
+        alt.Chart(pl.DataFrame({"zero": [0]}))
+        .mark_rule(color="#666")
+        .encode(y="zero:Q")
+    )
+    return (bars + markers + zero).properties(
+        width=950,
+        height=300,
+        title="SSB 10316: husholdningstype — eiendeler, gjeld og nettoformue (2024)",
+    )
+
+
 @app.function
 def decile_net_balance(reference: dict) -> pl.DataFrame:
     """Accounting residual from compatible 2024 net-wealth-ranked means.
@@ -1324,6 +1462,232 @@ def public_reference_data() -> dict:
 
 
 # END GENERATED PUBLIC REFERENCE
+
+
+# BEGIN GENERATED HOUSEHOLD COMPOSITION
+@app.function
+def household_composition_reference() -> dict:
+    """Public aggregates; generated offline by scripts/build_wealth_reference.py."""
+    return {
+        "schema_version": 1,
+        "snapshot": "2026-09-20-feasibility",
+        "table": "10316",
+        "year": 2024,
+        "updated": "2026-02-12T07:00:00Z",
+        "national": {
+            "code": "50",
+            "label": "Alle hushald",
+            "primary_housing": 3151100,
+            "secondary_housing": 349000,
+            "real_assets": 3797700,
+            "financial_assets": 1850000,
+            "debt": 1757300,
+            "net_wealth": 3890400,
+            "households": 2616826,
+            "other_real_assets": 297600,
+            "accounting_difference": 0,
+        },
+        "groups": [
+            {
+                "code": "51",
+                "label": "Aleinebuande under 30 år",
+                "primary_housing": 929000,
+                "secondary_housing": 76400,
+                "real_assets": 1044500,
+                "financial_assets": 408600,
+                "debt": 886400,
+                "net_wealth": 566700,
+                "households": 181197,
+                "other_real_assets": 39100,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "52",
+                "label": "Aleinebuande 30-44 år",
+                "primary_housing": 1538300,
+                "secondary_housing": 134900,
+                "real_assets": 1746900,
+                "financial_assets": 550900,
+                "debt": 1179100,
+                "net_wealth": 1118700,
+                "households": 248128,
+                "other_real_assets": 73700,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "53",
+                "label": "Aleinebuande 45-66 år",
+                "primary_housing": 2179500,
+                "secondary_housing": 228700,
+                "real_assets": 2573900,
+                "financial_assets": 1222000,
+                "debt": 982600,
+                "net_wealth": 2813300,
+                "households": 350143,
+                "other_real_assets": 165700,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "54",
+                "label": "Aleinebuande 67 år og eldre",
+                "primary_housing": 2810000,
+                "secondary_housing": 184900,
+                "real_assets": 3133900,
+                "financial_assets": 1430600,
+                "debt": 434300,
+                "net_wealth": 4130200,
+                "households": 324621,
+                "other_real_assets": 139000,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "55",
+                "label": "Par utan barn, eldste person under 30 år",
+                "primary_housing": 2219600,
+                "secondary_housing": 166400,
+                "real_assets": 2489400,
+                "financial_assets": 902700,
+                "debt": 2376500,
+                "net_wealth": 1015700,
+                "households": 52128,
+                "other_real_assets": 103400,
+                "accounting_difference": -100,
+            },
+            {
+                "code": "56",
+                "label": "Par utan barn, eldste person 30-44 år",
+                "primary_housing": 3214700,
+                "secondary_housing": 306500,
+                "real_assets": 3680600,
+                "financial_assets": 1388100,
+                "debt": 2930600,
+                "net_wealth": 2138100,
+                "households": 78801,
+                "other_real_assets": 159400,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "57",
+                "label": "Par utan barn, eldste person 45-66 år",
+                "primary_housing": 4157000,
+                "secondary_housing": 645200,
+                "real_assets": 5433100,
+                "financial_assets": 3219200,
+                "debt": 2146600,
+                "net_wealth": 6505700,
+                "households": 210383,
+                "other_real_assets": 630900,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "58",
+                "label": "Par utan barn, eldste person 67 år og eldre",
+                "primary_housing": 4136700,
+                "secondary_housing": 491100,
+                "real_assets": 5099500,
+                "financial_assets": 3299200,
+                "debt": 822300,
+                "net_wealth": 7576400,
+                "households": 287837,
+                "other_real_assets": 471700,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "59",
+                "label": "Par med barn 0-5 år",
+                "primary_housing": 4211300,
+                "secondary_housing": 389100,
+                "real_assets": 4917800,
+                "financial_assets": 1656800,
+                "debt": 3789600,
+                "net_wealth": 2785000,
+                "households": 215525,
+                "other_real_assets": 317400,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "60",
+                "label": "Par med barn 6-17 år",
+                "primary_housing": 4771000,
+                "secondary_housing": 531400,
+                "real_assets": 5816500,
+                "financial_assets": 2698900,
+                "debt": 3477600,
+                "net_wealth": 5037800,
+                "households": 269166,
+                "other_real_assets": 514100,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "61",
+                "label": "Par med barn 18 år og eldre",
+                "primary_housing": 4725800,
+                "secondary_housing": 769500,
+                "real_assets": 6180500,
+                "financial_assets": 4110500,
+                "debt": 2808600,
+                "net_wealth": 7482300,
+                "households": 124522,
+                "other_real_assets": 685200,
+                "accounting_difference": 100,
+            },
+            {
+                "code": "62",
+                "label": "Einsleg mor/far med barn 0-5 år",
+                "primary_housing": 1643300,
+                "secondary_housing": 156800,
+                "real_assets": 1887400,
+                "financial_assets": 441000,
+                "debt": 1342200,
+                "net_wealth": 986200,
+                "households": 21498,
+                "other_real_assets": 87300,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "63",
+                "label": "Einsleg mor/far med barn 6-17 år",
+                "primary_housing": 2643800,
+                "secondary_housing": 189300,
+                "real_assets": 2977700,
+                "financial_assets": 883000,
+                "debt": 1740000,
+                "net_wealth": 2120700,
+                "households": 86703,
+                "other_real_assets": 144600,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "64",
+                "label": "Einsleg mor/far med barn 18 år og eldre",
+                "primary_housing": 3232200,
+                "secondary_housing": 308900,
+                "real_assets": 3798200,
+                "financial_assets": 1501800,
+                "debt": 1593600,
+                "net_wealth": 3706300,
+                "households": 68351,
+                "other_real_assets": 257100,
+                "accounting_difference": 100,
+            },
+            {
+                "code": "65",
+                "label": "Fleirfamiliehushald",
+                "primary_housing": 3275100,
+                "secondary_housing": 534700,
+                "real_assets": 4215800,
+                "financial_assets": 1746400,
+                "debt": 2309800,
+                "net_wealth": 3652400,
+                "households": 97823,
+                "other_real_assets": 406000,
+                "accounting_difference": 0,
+            },
+        ],
+    }
+
+
+# END GENERATED HOUSEHOLD COMPOSITION
 
 
 if __name__ == "__main__":
