@@ -1,0 +1,328 @@
+{
+  "retrieved": "2026-09-20",
+  "scope": "Public housing/debt composition and ownership feasibility; raw responses, not browser inputs. Query parameters are preserved in URLs.",
+  "sources": [
+    {
+      "file": "05946-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/05946/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "84aa75fd175dd8a317c98ec311d175fa6c7524178850e59971908deaa5c23cce"
+    },
+    {
+      "file": "06071-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/06071/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "7f835a6b35575577d605bb73a6d7c29d981d3adfe6fff513962d7086c5738a24"
+    },
+    {
+      "file": "06076-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/06076/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "396d0860decc8e2a5e26b5ffc624bf6c149793f90a0cd2d37bba21ee59be9db4"
+    },
+    {
+      "file": "06886-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/06886/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "95b2d0d1b0729cd6762130c71f5444a1c1e2828499f016b244979287f3ff027f"
+    },
+    {
+      "file": "07894-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/07894/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "27691f2b187e835c41b940e9153421b8e5b478e6dd70aac9cde4bf7874bf2323"
+    },
+    {
+      "file": "08564-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/08564/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "e1cf508c1a5da353db8d257406a82a4acfb055be6dbda842c372c5fe7efc2475"
+    },
+    {
+      "file": "08603-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/08603/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "94f1387e5a3179ba83ee13f85e1a265f9b46419482c5fa12b5804248868655d0"
+    },
+    {
+      "file": "08815-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/08815/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "846bf9c8ee24bc4562d716c01bb88bfe4e7ad833dd995b0366bc536869704cab"
+    },
+    {
+      "file": "09916-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/09916/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "825957e5933ce701aebe274651169f2fe339166feb0d323922eb0b787dfbf8a4"
+    },
+    {
+      "file": "10315-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/10315/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "c93cbeb7da21fd65919fc373c27cf765a7695a698fb718424307d03667239a31"
+    },
+    {
+      "file": "10315.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/10315/data?lang=no&outputFormat=json-stat2&valueCodes%5BFormueHush%5D=%2A&valueCodes%5BContentsCode%5D=%2A&valueCodes%5BTid%5D=2024",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "2f3342a0cc95882750bc83ffcfeb9c26f377377c8bf644cdd00386ff5645ca62"
+    },
+    {
+      "file": "10316-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/10316/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "4c62eee0ded8a654c0051ed889fb1fe664e1874bf4ab3604b21d24ee5e0da53c"
+    },
+    {
+      "file": "10316.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/10316/data?lang=no&outputFormat=json-stat2&valueCodes%5BHushaldstype%5D=%2A&valueCodes%5BContentsCode%5D=%2A&valueCodes%5BTid%5D=2024",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "0233a3b470b89fa32d6591c2cbf507c944b9de3a6ae758a3cefce19623a44612"
+    },
+    {
+      "file": "10317-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/10317/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "edab6f76ff256968444eb32f6b4dc514465a959eeebfef8b140aa5ae7db0afa6"
+    },
+    {
+      "file": "10317.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/10317/data?lang=no&outputFormat=json-stat2&valueCodes%5BAlderHovedinn%5D=%2A&valueCodes%5BContentsCode%5D=%2A&valueCodes%5BTid%5D=2024",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "4fee55265c5f9588c87e79eea588b006186d7d6fdaaac34a8729d2c189b4fe74"
+    },
+    {
+      "file": "10318-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/10318/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "d92b8b27228043f279bde93f292e87f1eb2c3555ebdc3f87851e64d3bedbae7e"
+    },
+    {
+      "file": "10319-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/10319/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "459f06ab7017cb18ad17f7b61638c4ead33faeacc13749a449ff594c6dbae120"
+    },
+    {
+      "file": "14059-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14059/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "f109760675e098bd1229c8b3c351e5e6f575b6908a95c7be7c41ad672dc9e583"
+    },
+    {
+      "file": "14059.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14059/data?lang=no&outputFormat=json-stat2&valueCodes%5BEierStatus%5D=%2A&valueCodes%5BContentsCode%5D=%2A&valueCodes%5BTid%5D=2024%2C2025",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "e5967dbe869c8146634aee5aff33a8db1036ef82f22710b6f5c2646c99581940"
+    },
+    {
+      "file": "14062-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14062/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "4ef08f20aacc5dc736e7ba55dd542a89e00bc9f5e64d1638a707484833952341"
+    },
+    {
+      "file": "14065-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14065/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "7e4400fada36a7fbb2de5eb9dc5156a540cb500b0e5b029d7275a3dda1a90bc7"
+    },
+    {
+      "file": "14066-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14066/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "d069a85a24ef84601ac8338d6c2acb03ed4f8249dd7c338593850cacfa63a4c0"
+    },
+    {
+      "file": "14066.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14066/data?lang=no&outputFormat=json-stat2&valueCodes%5BBoliglaanStorrelse%5D=%2A&valueCodes%5BContentsCode%5D=%2A&valueCodes%5BTid%5D=2024%2C2025",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "08e38c0d95d20dde6ec70f430fab7b7fdeab414cf525f9491310d5945cae0ca1"
+    },
+    {
+      "file": "14781-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14781/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "7512e6d3bb34a0a2229d32175c72fc82916aba22377731433a5a5e9bdc5c6ad4"
+    },
+    {
+      "file": "14890-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14890/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "b8f7cea91dd295a9cbdb6f4758b380b1e4afc9559a9d8d57d2af55c89309ae95"
+    },
+    {
+      "file": "14890.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14890/data?lang=no&outputFormat=json-stat2&valueCodes%5BRegion%5D=0&valueCodes%5BEierStatus%5D=%2A&valueCodes%5BContentsCode%5D=%2A&valueCodes%5BTid%5D=2025",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "b606a0ec106251204c6eb66f6807f214873ca4e4cd31b40b7b60c6e0a41b561d"
+    },
+    {
+      "file": "14891-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14891/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "44676f66a14e110d8fb2c81692af2b6163918745da886f76c8c44431ff29fd18"
+    },
+    {
+      "file": "14891.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14891/data?lang=no&outputFormat=json-stat2&valueCodes%5BRegion%5D=0&valueCodes%5BEierStatus%5D=%2A&valueCodes%5BContentsCode%5D=%2A&valueCodes%5BTid%5D=2025",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "8e8f78cc72caa98aafde26c22407a1dac022d3992bc71f54f5606e4b19959ad5"
+    },
+    {
+      "file": "14898-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14898/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "d2d059285af84a6019135cc7a2de5d9f4088074c4bb3f8b5c04e32d26b81cecf"
+    },
+    {
+      "file": "14898.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14898/data?lang=no&outputFormat=json-stat2&valueCodes%5BRegion%5D=0&valueCodes%5BEierStatus%5D=%2A&valueCodes%5BHusholdType%5D=%2A&valueCodes%5BContentsCode%5D=%2A&valueCodes%5BTid%5D=2025",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "f27ed58dfd9a8d3d48f3791ab29c0e45c45856d9d692b5da6548ebbe194f9751"
+    },
+    {
+      "file": "14900-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14900/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "fcdc79961e9142cf618d916ca666d53b6c8076146ea77624ecd2609651f610c1"
+    },
+    {
+      "file": "14900.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14900/data?lang=no&outputFormat=json-stat2&valueCodes%5BRegion%5D=0&valueCodes%5BEierStatus%5D=%2A&valueCodes%5BInntekstgruppe%5D=%2A&valueCodes%5BContentsCode%5D=%2A&valueCodes%5BTid%5D=2025",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "e727286f893075021ebdddf10a0946807379c534052161cf6dc4182d238112be"
+    },
+    {
+      "file": "14903-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14903/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "29ee67fe6aa395684d70e4f4f3cf4e018f6f9e627a0763144f0611d4737a4ac4"
+    },
+    {
+      "file": "14917-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/14917/metadata?lang=no",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "566a98fc6f57967bb68958b579f61508ebc731d9b43643e18fb370afe943228c"
+    },
+    {
+      "file": "catalogue-boliglån.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables?lang=no&query=boligl%C3%A5n&pageSize=100",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "4c7970e0c0da2d4ffe57f31cb132bab0b2b74e08485913065803a5291d7c5d6d"
+    },
+    {
+      "file": "catalogue-desil.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables?lang=no&query=desil&pageSize=100",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "702ed26e9019b856212f3f66e070dc057bc7748cda100fc2d0374c54ecbc6f85"
+    },
+    {
+      "file": "catalogue-eierstatus.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables?lang=no&query=eierstatus&pageSize=100",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "bba6e6ea50f897c4eb296cc1f93dc72bb4a36d77bf99b6b2f21b1d96d5a835f5"
+    },
+    {
+      "file": "catalogue-nettoformue.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables?lang=no&query=nettoformue&pageSize=100",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "87aa9b2971bc551d8148546e37d1dbe5ae052ef33df995242e2eb6338563a794"
+    },
+    {
+      "file": "catalogue.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables?lang=no&query=formue&pageSize=100",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "361021f4a027d15b4812f5da5d5ce2b9065a50be6d9886e1f2975370ee2fde8f"
+    },
+    {
+      "file": "families.html",
+      "url": "https://www.ssb.no/befolkning/barn-familier-og-husholdninger/statistikk/familier-og-husholdninger",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "5d616cac86ed20cfe2a561483f985465dd35eba86d33d8c3e38deea850bd5356"
+    },
+    {
+      "file": "household-statistics.html",
+      "url": "https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/statistikk/inntekts-og-formuesstatistikk-for-husholdninger",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "bb2e1fb6f8d495a635c43e41773fc618f670ccd620542bf618328b7b4805f4ae"
+    },
+    {
+      "file": "housing-register.html",
+      "url": "https://www.ssb.no/bygg-bolig-og-eiendom/bolig-og-boforhold/statistikk/boforhold-registerbasert",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "b5055091fc655852b4629ee1ce1a414f58957139e411e771a0aedb9f85418b13"
+    },
+    {
+      "file": "housing-survey.html",
+      "url": "https://www.ssb.no/bygg-bolig-og-eiendom/bolig-og-boforhold/statistikk/boforhold-levekarsundersokelsen",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "8b081a64dda56784503dd99de201f695e14ca205b6cbf0c839fa032a65b9c31d"
+    },
+    {
+      "file": "ordinary-wealth.html",
+      "url": "https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/artikler/hva-er-vanlig-formue",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "288aa7001a9650726053f228591d04d0d916f4cd237d7932ea38a56f8ada737e"
+    },
+    {
+      "file": "ownership-revision.html",
+      "url": "https://www.ssb.no/bygg-bolig-og-eiendom/bolig-og-boforhold/artikler/boforholdsregisteret-dokumentasjon-og-revisjon-av-eierstatus-variabel",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "91367c110ec8a64c7950a9143d2eed0621afd71999a0763729e93b888752c5ec"
+    },
+    {
+      "file": "ownership-revision.pdf",
+      "url": "https://www.ssb.no/bygg-bolig-og-eiendom/bolig-og-boforhold/artikler/boforholdsregisteret-dokumentasjon-og-revisjon-av-eierstatus-variabel/_/attachment/inline/193b6df3-c998-49b4-a544-477f4c38c5b3:57a69ced547969d599ffaf1560cffd8b143d061e/NOT2026-17.pdf",
+      "method": "GET",
+      "retrieved": "2026-09-20",
+      "sha256": "44d2b24c3bd9309e6f0777ee6c840a1bc44387e53b3869126a6db20463c0ebdb"
+    }
+  ]
+}

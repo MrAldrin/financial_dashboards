@@ -73,10 +73,27 @@ February's −730m and May's −830m remain unreconciled, separately dated estim
 
 Municipality-specific 2026 decisions, the annual parliamentary tax-resolution archive and special legal cases remain open. Human scope/visual review is deferred to the plan's final review gate.
 
+## Public composition and ownership feasibility
+
+The [bounded feasibility investigation](public_data_feasibility_2026.md) records the population/ranking/valuation/denominator matrix, sources checked and remaining joint-data gaps. The immutable `2026-09-20-feasibility/` snapshot contains 46 raw responses with exact URLs/queries, retrieval dates and SHA-256 hashes. Earlier snapshots and browser reference values remain unchanged.
+
+Additional claims ledger:
+
+| Source location | Verified claim and limit |
+|---|---|
+| 10316/10317, 2024 component means and counts | Primary/secondary housing, financial assets, total debt and derived other real assets can be shown together by household type or main-earner age. These are all-household means, not owner-only means or net-wealth-decile portfolios. Group accounting discrepancies of up to NOK 100 are retained. |
+| Household-statistics definitions; 10315 | Total debt includes housing-company debt shares and reverses tax-related debt reductions. Student/unsecured-debt sources can use different reporting times; subtraction does not identify mortgage debt. 10315 means condition on having an amount, unlike 10316/17. |
+| 14066 and survey definitions | Published 2025 home-value means by mortgage-size group provide limited joint context; 2024 home-value cells are missing. The mortgage-mean variable conditions on having a loan, even in the “all owners” row. Survey responses/weights and self-reported values differ from H24 administrative wealth data. |
+| 14890/91/14898/14900 and register-statistics definitions | Revised tenure statistics support household-type/tenure cross-tabs. Person counts include all members of owner households, not just legal owners. The 2026 revision back to 2015 and dwelling-linkage exclusions matter. |
+| Notater 2026/17, pp. 18–21 | Published 2024 linkage-file totals distinguish dwellings and owners; they do not supply fractional ownership, co-owner tax status or a conversion factor for the 2026 property histogram. Internal linked records are not an open microdataset. |
+| 10316 notes, family-statistics definitions and existing legal audit | Statistical couples include cohabitants and some separated couples; they cannot be assigned joint wealth-tax assessment automatically. |
+
+**Recommendation, not implementation approval:** use 10316 for a separate descriptive household-type composition reference (or 10317 for age), retaining the verified net-wealth-decile financial-assets/residual view. No matching primary-housing/debt components by that same wealth rank, or complete property-to-tax-unit mapping, were found within the bounded search. A national-profile model would still require explicit assumptions, not a join of unrelated marginal tables. Human visual/scope choices remain at the final gate.
+
 ## Remaining data gaps
 
 - Housing tail beyond 30m and explicit original bin-edge definitions.
-- Housing, financial assets and debt jointly distributed across wealth groups.
-- Ownership/tax-unit mapping sufficient for a national receipts forecast.
+- Housing, financial assets and debt jointly distributed across economic-net-wealth groups; coarse same-group component means by household type/age are now verified, not a substitute for the missing wealth-rank joint distribution.
+- Ownership/tax-unit mapping sufficient for a national receipts forecast; tenure/type cross-tabs and owner–dwelling linkage totals do not identify fractional shares and legal assessment relationships.
 - Annual tax-resolution archive, municipality-specific 2026 exceptions, special legal cases and calculator support for mixed-asset debt allocation (core legal principles and housing enactment are now audited).
 - February (730m) versus May (830m) threshold-estimate bridge remains unavailable in the bounded investigation above. Different stated baselines are verified; a changed underlying data vintage is not established for these two threshold figures. These are not combined or used as a calibration target here.

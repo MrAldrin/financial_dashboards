@@ -1,6 +1,6 @@
 # Research plan: Norwegian housing wealth, tax incidence, and public revenue
 
-**Status:** Core dashboard implemented. On 20 September 2026 the user requested autonomous work first and **all human review at the end**. The legal audit and subsequently authorised bounded February/May official-estimate investigation are complete; the latter records an unresolved evidence gap, not a forced reconciliation. Neither authorises calculator changes or optional features. See the current execution order below and progress records at the bottom. Earlier “plan only” wording records the original research-session scope.  
+**Status:** Core dashboard implemented. On 20 September 2026 the user requested autonomous work first and **all human review at the end**. The legal audit, bounded February/May official-estimate investigation and public composition/ownership feasibility investigation are complete. Matching wealth-decile housing/debt and national ownership/tax-unit mapping remain unresolved; compatible coarse components by household type/age are verified. These documentary tasks do not authorise calculator changes or optional features. See the current execution order below and progress records at the bottom. Earlier “plan only” wording records the original research-session scope.  
 **Initial source review:** 20 September 2026.  
 **Target app:** `apps/building_taxation.py`.  
 **Scope:** Primary-residence wealth taxation first, within a combined household balance-sheet and income context. Secondary-residence policy and municipal property tax are separate extensions.  
@@ -507,10 +507,11 @@ Source IDs S11–S13 from the first draft concerned commissioned/restricted data
 - [x] Audit enacted-law references and dates, ordinary co-ownership guidance, joint-assessment rules and the statutory municipal-rate ceiling; archive findings in `data/wealth/legal_audit_2026.md`.
 - [ ] Complete remaining legal detail: annual tax-resolution archive, municipality-specific 2026 decisions, and special property/taxpayer cases. Do not represent these as supported calculator features.
 - [x] Save reproducible snapshots and claims ledgers for the implemented public references, official scenarios and legal audit.
-- [ ] Extend those ledgers as remaining evidence gaps are investigated; do not imply all planned sources have been verified.
+- [x] Extend ledgers for the authorised composition/ownership feasibility investigation; record bounded gaps without implying all planned sources have been verified.
 - [x] Investigate February versus May threshold-revenue estimates and comparison baselines within a bounded open-source search; record unresolved numerical reconciliation in `data/wealth/official_estimate_reconciliation_2026.md`.
 - [x] Reconstruct public housing-figure bins from PDF vectors; document interpolation, assumed bin boundaries and unknown tail.
 - [x] Extract S17 financial-wealth chart data; display verified financial composition. Matching housing/debt components remain an open extension.
+- [x] Investigate matching housing/debt and ownership/tax-unit mapping: verify 10316/10317 coarse composition and separate survey/tenure cross-tabs; document missing wealth-decile and legal-unit relationships in `data/wealth/public_data_feasibility_2026.md`.
 - [ ] Select initial weighted profiles and low/base/high population assumptions using open data only.
 - [ ] Final human review only: evaluate the implemented plot set/order, density, mobile/desktop layout, controls and queued scope decisions together after autonomous work.
 
@@ -564,4 +565,20 @@ Four reviewable `feat - wealth lab` JJ changes, without moving bookmarks or inte
 
 **Outcome:** bounded documentary task complete; numerical reconciliation remains an evidence gap. Verification passed: all six new source hashes, original-May/February-manuscript evidence markers, 18 unit tests, generated-reference consistency and Ruff. Diff review confirms evidence/documentation-only scope. No new WASM/browser run is needed for this evidence-only work.
 
-**Next independent plan task, subject to authorisation:** matching housing/debt composition and ownership/tax-unit mapping feasibility using public sources. Reopen official-estimate reconciliation only for a concrete new public lead. Human dashboard evaluation stays at the end.
+**Next task at completion of that investigation:** matching housing/debt composition and ownership/tax-unit mapping feasibility, subsequently authorised and completed below. Reopen official-estimate reconciliation only for a concrete new public lead. Human dashboard evaluation stays at the end.
+
+### Public composition and ownership feasibility — 20 September 2026
+
+- [x] Following user approval, read the plan, source/claims ledger, transformations and prior audits before searching. Keep the existing 2024 net-wealth-decile joins and source discrepancies unchanged.
+- [x] Inspect nine original table leads and 16 follow-up metadata responses, five complete v2 catalogue searches, six web searches, official article/definition pages and the ownership-revision report. Extract nine small public data responses; archive all 46 useful responses in immutable `data/wealth/2026-09-20-feasibility/` with URL/query/date/hash metadata.
+- [x] Produce the published/reconstructable/assumption-dependent/unavailable matrix in `data/wealth/public_data_feasibility_2026.md`, including populations, ranking, units, reference years, valuation, exclusions and join compatibility.
+- [x] Verify full coarse component means by household type (10316) and main-earner age (10317). Counts reconcile to 2,616,826; preserve up to NOK 100 component-rounding discrepancies. These are not net-wealth-decile or observed representative-household portfolios.
+- [x] Verify limited mortgage/home-value joint context in 14066, while retaining 2024 missing home values, survey/imputation caveats and conditional mortgage-mean denominators. Total debt minus student/unsecured debt does not identify mortgages.
+- [x] Verify revised tenure/type cross-tabs and owner–dwelling linkage totals; explain why household tenure, legal ownership fractions and joint tax assessment are different. No complete public mapping was found within scope.
+- [x] Keep calculator, generated references, dependencies, old snapshots and packaging unchanged. Do not invent portfolios, force official-estimate calibration or request restricted data.
+
+**Outcome:** bounded feasibility research complete. Matching housing/debt by the existing economic-net-wealth deciles and a complete property-to-owner/tax-unit mapping remain evidence gaps. Compatible household-type/age component means offer a useful descriptive alternative; joint survey/tenure data are separate reference populations, not interchangeable joins.
+
+**Recommended next separately authorised step:** add a descriptive household-type composition reference from 10316 (or age from 10317), retaining the existing decile residual and full curves. Do not turn group means into national tax profiles automatically. Alternatively continue separately scoped maintenance/automated QA from the execution order. Human plot/scope evaluation remains at the final gate; no implementation is authorised by this recommendation.
+
+**Verification:** all 46 new hashes and all earlier manifests, metadata/catalogue completeness, component accounting, tenure totals, mortgage figures/nulls and source-definition markers verified. All 18 existing unit tests, generated-reference consistency and Ruff passed. Diff review confirms evidence/documentation-only scope; no new WASM/browser run was needed.
