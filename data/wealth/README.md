@@ -50,6 +50,21 @@ The app explicitly applies the selected household's debt, undiscounted assets an
 
 `uv run python -m unittest discover -s tests` covers mechanics, integration, reference totals, missing cutoffs and wealth brackets. `uv run scripts/check_wealth_browser.py` serves the exported `_site` on a temporary local port, runs Chrome/Chromium and verifies a 10m reform and reset to 14m. It does not restart a Marimo session. The notebook runtime uses only Marimo, Polars and Altair; offline scripts have their own isolated dependencies.
 
+## Dated official scenario context
+
+The separate immutable `2026-09-20-official/` snapshot archives the directly verified chapter 3 of Prop. 95 LS, its index (12 May 2026; corrected edition 11 June 2026), and the minister's 12 February 2026 answer to question 1404. Its manifest records URLs, retrieval date and SHA-256 checksums; unit tests verify them. The February presentation is already archived as `2026-09-20/housing.pdf`. The notebook embeds a static, linked Markdown explanation, not another calculator or runtime data fetch. Browser checks confirm its table stays unchanged through policy changes.
+
+Claims ledger:
+
+| Source location | Claim and scope |
+|---|---|
+| Question 1404, p. 2 | 10→20m threshold: −1,250m NOK accrued versus adopted 2026 rules; approximately 114,600 people benefiting, average relief about 11,000 NOK, mean gross income among beneficiaries 1.72m NOK. Published rounded quantities are not forced to multiply exactly. |
+| Question 1404, pp. 5–6 | LOTTE-Skatt, 2023 sample projected to 2026, updated tax-card housing values; excludes behavioural responses and additional documented downward value corrections. Person groups are not joined to SSB household deciles. |
+| Housing presentation, slide 5 | −730m threshold contribution in a figure comparing with continuation of the 2025 system into 2026. No extra accrued/booked classification is inferred from this slide. |
+| Proposition, chapter 3, paragraphs 3–4 | −830m accrued in 2026 for 10→14m versus adopted budget; +550m updated model estimate versus assumptions behind adoption; combined package −280m accrued, with booked 2026 effect estimated at zero. These are not three separate threshold reforms. |
+
+February's −730m and May's −830m remain unreconciled, separately dated estimates. The live app instead compares arbitrary settings against a 14m reference, so choosing 10m reverses the official relief direction. Reversing a sign does not make its property/common-profile population compatible with an official national model. No calibration, attribution of income to individual homeowners, or enacted-law claim is made.
+
 ## Remaining data gaps
 
 - Housing tail beyond 30m and explicit original bin-edge definitions.

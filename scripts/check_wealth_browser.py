@@ -46,6 +46,13 @@ def main() -> None:
             # Controls live inside shadow roots; Playwright locators pierce them.
             preset = page.get_by_role("button", name="Boligtrinn: 10 mill.", exact=True)
             expect(preset).to_be_visible(timeout=180_000)
+            official_heading = page.get_by_role(
+                "heading", name="Offisielle scenarioer — faste, daterte referanser"
+            )
+            expect(official_heading).to_be_visible(timeout=180_000)
+            official_table = page.get_by_role("table").filter(has_text="−1 250")
+            expect(official_table).to_be_visible()
+            official_before = official_table.inner_text()
             preset.click()
             expect(
                 page.get_by_text(re.compile(r"Referanse:.*Sandkasse:.*18,000 kr/år"))
@@ -53,6 +60,7 @@ def main() -> None:
             expect(
                 page.get_by_text(re.compile(r"Illustrert årlig endring.*\+869\.4"))
             ).to_be_visible(timeout=60_000)
+            assert official_table.inner_text() == official_before
             page.get_by_role("button", name="Boligtrinn: 14 mill.", exact=True).click()
             expect(
                 page.get_by_text(
@@ -62,6 +70,7 @@ def main() -> None:
             expect(
                 page.get_by_text(re.compile(r"Illustrert årlig endring.*\+0\.0"))
             ).to_be_visible(timeout=60_000)
+            assert official_table.inner_text() == official_before
             # Ensure chart canvases exist; successful HTML alone is not a WASM check.
             expect(page.locator("canvas").first).to_be_attached(timeout=60_000)
             if errors:

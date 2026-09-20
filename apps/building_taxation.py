@@ -602,6 +602,47 @@ def _(policy_inputs, reference, shared_inputs, tail_count_ui, tail_upper_ui):
     return central_effect, population_results
 
 
+@app.cell
+def _():
+    mo.md("""
+    ### Offisielle scenarioer — faste, daterte referanser
+
+    **Publiserte anslag, ikke resultater fra skyveknappene.** Minus betyr lavere
+    skatteinntekter i kildens sammenligning. Beløpene er omtrentlige millioner kroner.
+
+    | Kilde og dato | Endring og sammenligningsgrunnlag | Anslag |
+    | :--- | :--- | ---: |
+    | [Svar 1404, 12.02.2026](https://www.stortinget.no/globalassets/pdf/dokumentserien/2025-2026/dok15-202526-1404-vedlegg.pdf), s. 2 | Boliggrense 10 → 20 mill.; mot vedtatte 2026-regler, påløpt | −1 250 |
+    | [Finansdepartementet, 27.02.2026](https://www.regjeringen.no/contentassets/27840e5ecb354f02a249f3cbd86b01d9/finmins-presentasjon-oppdatert-boligmodell-27.02.26.pdf), lysbilde 5 | Boliggrense 10 → 14 mill.; del av figur mot videreført 2025-system i 2026 | −730 |
+    | [Prop. 95 LS, 12.05.2026](https://www.regjeringen.no/no/dokumenter/prop.-95-ls-20252026/id3159628/?ch=3), kap. 3, korrigert utgave 11.06.2026 | Boliggrense 10 → 14 mill.; isolert mot vedtatt budsjett, påløpt i 2026 | −830 |
+
+    **Ikke samme regnestykke:** Appen bruker 14 mill. som referanse. En valgt
+    10-millionersgrense går derfor motsatt vei av den offisielle lettelsen 10 → 14.
+    Selv med snudd fortegn er fellesprofilen ikke en nasjonal modell. Vi kalibrerer
+    ikke illustrasjonen til disse tallene. Forskjellen mellom februaranslaget
+    −730 og maianslaget −830 er ikke avklart; de skal ikke summeres eller blandes.
+
+    **Maianslaget i sammenheng:** Proposisjonen oppgir også +550 mill. fra oppdaterte
+    modellanslag mot forutsetningene bak budsjettvedtaket. Sammen med tidligere
+    vedtatte endringer gir pakken −280 mill. påløpt i 2026. Dette er ikke enda et
+    isolert terskelanslag. Pakkens bokførte virkning i 2026 anslås til null, avhengig
+    av endrede skattekort; bokført og påløpt er forskjellige størrelser.
+
+    **Hvem gjelder 20-millionersanslaget?** Svar 1404 anslår om lag **114 600 personer**
+    med lavere skatt, om lag **11 000 kr** i gjennomsnittlig lettelse og **1,72 mill. kr**
+    i gjennomsnittlig bruttoinntekt blant de berørte. Dette er personer, ikke boliger
+    eller husholdninger, og sier ikke hva en vilkårlig eier av en dyr bolig tjener.
+    Avrundede gjennomsnitt og antall skal ikke tvinges til å gi nøyaktig proveny.
+    Persondesilene i svaret kobles ikke til SSBs husholdningsdesiler nedenfor.
+
+    Beregningen bruker LOTTE-Skatt med et 2023-utvalg framskrevet til 2026 og
+    boligverdier fra skattekortene for 2026 (s. 5–6). Den inkluderer ikke
+    atferdsendringer eller at flere kan dokumentere lavere boligverdi.
+    Kildene beskriver daterte forslag/anslag, ikke dokumentasjon av dagens lovvedtak.
+    """)
+    return
+
+
 @app.function
 def weighted_policy_effect(
     bins: list[dict], policies: list[dict], household: dict

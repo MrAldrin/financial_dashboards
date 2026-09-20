@@ -1,0 +1,20 @@
+{
+  "retrieved": "2026-09-20",
+  "sources": [
+    {
+      "file": "proposition.html",
+      "url": "https://www.regjeringen.no/no/dokumenter/prop.-95-ls-20252026/id3159628/?ch=3",
+      "sha256": "c1ddcf7badea9f21f6f0a1c23dd111572e8c7e6ad4e3b7e9ef6d20f0efdeabfd"
+    },
+    {
+      "file": "proposition-index.html",
+      "url": "https://www.regjeringen.no/no/dokumenter/prop.-95-ls-20252026/id3159628/",
+      "sha256": "a26883795f63e61e62ea7ca1605760ad2472d222e129ce6187c8677262078b8b"
+    },
+    {
+      "file": "question1404.pdf",
+      "url": "https://www.stortinget.no/globalassets/pdf/dokumentserien/2025-2026/dok15-202526-1404-vedlegg.pdf",
+      "sha256": "ba09d9408f1d5f5f3f86141aa3f43eba0df31442d3d1ed541ed273d721279aeb"
+    }
+  ]
+}
