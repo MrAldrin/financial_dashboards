@@ -1,0 +1,30 @@
+{
+  "retrieved": "2026-09-20",
+  "sources": [
+    {
+      "file": "housing.pdf",
+      "url": "https://www.regjeringen.no/contentassets/27840e5ecb354f02a249f3cbd86b01d9/finmins-presentasjon-oppdatert-boligmodell-27.02.26.pdf",
+      "sha256": "986f91620ca4e3c14eeafdc9cdc3a196bff758cfef175513cf9a477c32861955"
+    },
+    {
+      "file": "article.html",
+      "url": "https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/statistikk/inntekts-og-formuesstatistikk-for-husholdninger/artikler/vekst-i-husholdningenes-finansformue-i-2024",
+      "sha256": "f3897ad0505a688670d4ff3e17a5371aed999740d6656dbb4d2c9b4a6939fefb"
+    },
+    {
+      "file": "rates.html",
+      "url": "https://www.skatteetaten.no/satser/formuesskatt/",
+      "sha256": "5f07ed8b2b501e39dc7dd3169eed6cb3af4725af55a2a231498ba8ef8a86b863"
+    },
+    {
+      "file": "10318-meta.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/10318/metadata?lang=no",
+      "sha256": "d92b8b27228043f279bde93f292e87f1eb2c3555ebdc3f87851e64d3bedbae7e"
+    },
+    {
+      "file": "10318.json",
+      "url": "https://data.ssb.no/api/pxwebapi/v2/tables/10318/data?lang=no&valueCodes[Tid]=2024&valueCodes[Desiler]=*&valueCodes[ContentsCode]=Grenseverdi,Hushald,BereknFormue&outputFormat=json-stat2",
+      "sha256": "aadbb59f457f6dca9425b4db01d9de5244f863de6eb2413154053c14eb5c3e98"
+    }
+  ]
+}

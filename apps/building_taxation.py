@@ -345,7 +345,15 @@ def _(
 
 
 @app.cell
-def _(curve_max, difference_df, marker_notes, markers_df, selected_home, tax_df):
+def _(
+    curve_max,
+    difference_df,
+    housing_chart,
+    marker_notes,
+    markers_df,
+    selected_home,
+    tax_df,
+):
     selected_rows = tax_df.filter(
         pl.col("market_value") == selected_home.value
     ).to_dicts()
@@ -390,7 +398,7 @@ def _(curve_max, difference_df, marker_notes, markers_df, selected_home, tax_df)
         curve_max,
     )
     coordinated_curves = alt.vconcat(
-        *curve_panels, delta_panel, burden_panel
+        *curve_panels, housing_chart, delta_panel, burden_panel
     ).resolve_scale(x="shared", color="shared")
     mo.vstack(
         [
@@ -400,6 +408,202 @@ def _(curve_max, difference_df, marker_notes, markers_df, selected_home, tax_df)
         ]
     )
     return coordinated_curves, selected_rows
+
+
+@app.cell
+def _(curve_max, get_tiers, selected_home):
+    reference = public_reference_data()
+    housing_df = pl.DataFrame(reference["housing_bins"])
+    housing_bars = (
+        alt.Chart(housing_df)
+        .mark_bar(color="#999", opacity=0.8)
+        .encode(
+            x=alt.X(
+                "lower:Q",
+                title="Hele boligens markedsverdi (NOK)",
+                scale=alt.Scale(domain=[0, curve_max]),
+            ),
+            x2="upper:Q",
+            y=alt.Y("count:Q", title="Boliger (rekonstruert)"),
+            tooltip=["lower:Q", "upper:Q", alt.Tooltip("count:Q", format=",.0f")],
+        )
+    )
+    histogram_rules = (
+        alt.Chart(
+            pl.DataFrame(
+                {
+                    "value": [14_000_000, selected_home.value]
+                    + [t["limit"] for t in get_tiers() if t["limit"] is not None]
+                }
+            )
+        )
+        .mark_rule(color="#9c6500")
+        .encode(x="value:Q")
+    )
+    unknown_tail = (
+        alt.Chart(
+            pl.DataFrame({"lower": [30_000_000], "upper": [max(30_000_000, curve_max)]})
+        )
+        .mark_rect(color="#e9d8a6", opacity=0.35)
+        .encode(x="lower:Q", x2="upper:Q")
+    )
+    housing_chart = (housing_bars + histogram_rules + unknown_tail).properties(
+        width=950,
+        height=160,
+        title="Primærboliger: digitalisert fra departementets figur (2026). Gul hale >30m: ukjent, ikke null.",
+    )
+    return housing_chart, housing_df, reference
+
+
+@app.cell
+def _(get_tiers, housing_df, reference, selected_rows):
+    wealth_context = wealth_bracket(
+        selected_rows[1]["economic_wealth"], reference["wealth_groups"]
+    )
+    exposure_limits = sorted(
+        {14_000_000, *[t["limit"] for t in get_tiers() if t["limit"] is not None]}
+    )
+    exposure_rows = [
+        dict(grense=limit, **exposure_above(reference["housing_bins"], limit))
+        for limit in exposure_limits
+    ]
+    mo.vstack(
+        [
+            mo.md(
+                f"### Hvor ligger eksemplet i formuesfordelingen?\n**{wealth_context}**\n\n"
+                "SSB 10318, beregnet nettoformue i **2024**, husholdninger uten studenthusholdninger. "
+                "Dette er et intervall, ikke en eksakt rang. Dagens egenoppgitte kroner sammenlignes "
+                "uten prisjustering; pensjonsrettigheter er ikke med. Et dyrt hus alene bestemmer ikke rang."
+            ),
+            mo.md(
+                f"### Hvor mange boliger ligger over grensene?\n"
+                f"Figuren dekker omtrent **{housing_df['count'].sum() / 1_000_000:.2f} millioner** primærboliger i viste grupper. "
+                "Antall under er **rekonstruert**, ikke eksakte registertellinger. "
+                "Midtestimatet antar jevn fordeling i hvert millionintervall; nedre/øvre gjelder ukjent "
+                "plassering innen intervallet. **Boliger over 30 mill. kommer i tillegg og er ukjent.** "
+                "Dette teller boliger, ikke skattebetalere. Departementet oppgir avrundet 2 % over 14 mill."
+            ),
+            mo.ui.table(pl.DataFrame(exposure_rows), selection=None),
+            mo.accordion(
+                {
+                    "Kilder og metode": mo.md(
+                        "[Boligfigur, Finansdepartementet 27.02.2026, side 8 og 10](https://www.regjeringen.no/contentassets/27840e5ecb354f02a249f3cbd86b01d9/finmins-presentasjon-oppdatert-boligmodell-27.02.26.pdf). "
+                        "Høyder hentet fra PDF-vektorer, avrundet til 100 boliger. Etikett 1 tolkes som 0–1 mill., "
+                        "etikett 2 som 1–2 mill. osv.; intervallgrensene er en antakelse. "
+                        "Ingen ukjent hale er fylt inn som observerte boliger. "
+                        "[Formuesgrenser: SSB 10318](https://www.ssb.no/statbank/table/10318), korrigert februar 2026. "
+                        "Kildesnapshot 20.09.2026 er pakket i appen; ingen personlige verdier sendes til SSB."
+                    )
+                }
+            ),
+        ]
+    )
+    return
+
+
+@app.cell
+def _(reference):
+    financial_means_df = pl.DataFrame(reference["financial_means"])
+    composition_df = pl.DataFrame(reference["financial_composition"])
+    financial_mean_chart = (
+        alt.Chart(financial_means_df)
+        .mark_bar(color="#0072b2")
+        .encode(
+            x=alt.X("decile:O", title="Desil etter beregnet nettoformue (1 = lavest)"),
+            y=alt.Y("mean:Q", title="Gjennomsnittlig finansformue (NOK)"),
+            tooltip=["decile:O", "mean:Q"],
+        )
+        .properties(width=950, height=240)
+    )
+    decile_composition = (
+        alt.Chart(composition_df.filter(~pl.col("group").str.starts_with("Topp")))
+        .mark_bar()
+        .encode(
+            x=alt.X(
+                "group:O",
+                sort=[str(n) for n in range(1, 11)],
+                title="Nettoformuesdesil",
+            ),
+            y=alt.Y("percent:Q", title="Andel av finansformuen (%)"),
+            color=alt.Color("component:N", title="Komponent"),
+            tooltip=["group:N", "component:N", "percent:Q"],
+        )
+        .properties(width=950, height=240)
+    )
+    top_composition = (
+        alt.Chart(composition_df.filter(pl.col("group").str.starts_with("Topp")))
+        .mark_bar()
+        .encode(
+            x=alt.X("group:N", title="Detalj: inngår allerede i desil 10"),
+            y=alt.Y("percent:Q", title="Andel av finansformuen (%)"),
+            color=alt.Color("component:N", title="Komponent"),
+            tooltip=["group:N", "component:N", "percent:Q"],
+        )
+        .properties(width=950, height=180)
+    )
+    mo.vstack(
+        [
+            mo.md(
+                "### Hvor er finansformuen? — publiserte SSB-tall, 2024\n"
+                "Husholdninger rangert etter **nettoformue**, ikke inntekt eller boligpris. "
+                "Finansformue er bankinnskudd, verdipapirer m.m., **ikke bolig eller gjeld**. "
+                "Vi viser den verifiserte delhistorien fremfor å finne på bolig- og gjeldsfordelingen."
+            ),
+            financial_mean_chart,
+            decile_composition,
+            top_composition,
+            mo.md(
+                "[SSB, Vekst i husholdningenes finansformue i 2024, figur 2–3 (19.02.2026)]"
+                "(https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/statistikk/inntekts-og-formuesstatistikk-for-husholdninger/artikler/vekst-i-husholdningenes-finansformue-i-2024). "
+                "Studenthusholdninger utelatt. Prosentene er avrundet og kan summere til 99 eller 101. "
+                "Toppgruppene overlapper og skal ikke legges til desilene. "
+                "Gjennomsnitt er ikke en typisk husholdning; finansformue er heller ikke bare tilgjengelige kontanter."
+            ),
+        ]
+    )
+    return financial_mean_chart, decile_composition, top_composition
+
+
+@app.function
+def wealth_bracket(net_wealth: float, groups: list[dict]) -> str:
+    boundaries = [
+        (row["cutoff"], (int(row["code"]) - 1) * 10)
+        for row in groups
+        if row["code"].isdigit() and row["cutoff"] is not None
+    ]
+    boundaries += [
+        (row["cutoff"], {"05b": 95, "01b": 99, "01c": 99.9}[row["code"]])
+        for row in groups
+        if row["code"] in ("05b", "01b", "01c")
+    ]
+    lower_percentile = 0.0
+    for cutoff, percentile in sorted(boundaries):
+        if net_wealth < cutoff:
+            return f"Mellom {lower_percentile:g}. og {percentile:g}. persentil (2024-referanse)"
+        lower_percentile = percentile
+    return "Topp 0,1 % (2024-referanse)"
+
+
+@app.function
+def exposure_above(bins: list[dict], threshold: float) -> dict:
+    estimate = lower = upper = 0.0
+    for band in bins:
+        if threshold <= band["lower"]:
+            lower += band["count"]
+            upper += band["count"]
+            estimate += band["count"]
+        elif threshold < band["upper"]:
+            upper += band["count"]
+            estimate += (
+                band["count"]
+                * (band["upper"] - threshold)
+                / (band["upper"] - band["lower"])
+            )
+    return {
+        "midtanslag_viste_grupper": round(estimate / 100) * 100,
+        "nedre_viste_grupper": round(lower / 100) * 100,
+        "øvre_viste_grupper": round(upper / 100) * 100,
+    }
 
 
 @app.function
@@ -588,6 +792,249 @@ def home_value_at_tax_wealth(tiers: list[dict], target: float) -> float | None:
             accumulated += (limit - previous) * rate
         previous = limit
     return None
+
+
+# BEGIN GENERATED PUBLIC REFERENCE
+@app.function
+def public_reference_data() -> dict:
+    """Public aggregates; generated offline by scripts/build_wealth_reference.py."""
+    return {
+        "snapshot": "2026-09-20",
+        "wealth_year": 2024,
+        "financial_means": [
+            {"decile": 1, "mean": 210800},
+            {"decile": 2, "mean": 65400},
+            {"decile": 3, "mean": 193100},
+            {"decile": 4, "mean": 403200},
+            {"decile": 5, "mean": 491500},
+            {"decile": 6, "mean": 625500},
+            {"decile": 7, "mean": 856100},
+            {"decile": 8, "mean": 1251100},
+            {"decile": 9, "mean": 2081800},
+            {"decile": 10, "mean": 12322000},
+        ],
+        "financial_composition": [
+            {"group": "1", "component": "Bankinnskudd", "percent": 58},
+            {"group": "2", "component": "Bankinnskudd", "percent": 73},
+            {"group": "3", "component": "Bankinnskudd", "percent": 78},
+            {"group": "4", "component": "Bankinnskudd", "percent": 72},
+            {"group": "5", "component": "Bankinnskudd", "percent": 67},
+            {"group": "6", "component": "Bankinnskudd", "percent": 66},
+            {"group": "7", "component": "Bankinnskudd", "percent": 66},
+            {"group": "8", "component": "Bankinnskudd", "percent": 65},
+            {"group": "9", "component": "Bankinnskudd", "percent": 61},
+            {"group": "10", "component": "Bankinnskudd", "percent": 19},
+            {"group": "Topp 1 prosent", "component": "Bankinnskudd", "percent": 6},
+            {"group": "Topp 0,1 prosent", "component": "Bankinnskudd", "percent": 2},
+            {"group": "1", "component": "Andeler i verdipapirfond", "percent": 5},
+            {"group": "2", "component": "Andeler i verdipapirfond", "percent": 5},
+            {"group": "3", "component": "Andeler i verdipapirfond", "percent": 4},
+            {"group": "4", "component": "Andeler i verdipapirfond", "percent": 5},
+            {"group": "5", "component": "Andeler i verdipapirfond", "percent": 6},
+            {"group": "6", "component": "Andeler i verdipapirfond", "percent": 6},
+            {"group": "7", "component": "Andeler i verdipapirfond", "percent": 6},
+            {"group": "8", "component": "Andeler i verdipapirfond", "percent": 6},
+            {"group": "9", "component": "Andeler i verdipapirfond", "percent": 6},
+            {"group": "10", "component": "Andeler i verdipapirfond", "percent": 4},
+            {
+                "group": "Topp 1 prosent",
+                "component": "Andeler i verdipapirfond",
+                "percent": 3,
+            },
+            {
+                "group": "Topp 0,1 prosent",
+                "component": "Andeler i verdipapirfond",
+                "percent": 2,
+            },
+            {"group": "1", "component": "Aksjer og andre verdipapir", "percent": 17},
+            {"group": "2", "component": "Aksjer og andre verdipapir", "percent": 7},
+            {"group": "3", "component": "Aksjer og andre verdipapir", "percent": 5},
+            {"group": "4", "component": "Aksjer og andre verdipapir", "percent": 7},
+            {"group": "5", "component": "Aksjer og andre verdipapir", "percent": 8},
+            {"group": "6", "component": "Aksjer og andre verdipapir", "percent": 9},
+            {"group": "7", "component": "Aksjer og andre verdipapir", "percent": 9},
+            {"group": "8", "component": "Aksjer og andre verdipapir", "percent": 10},
+            {"group": "9", "component": "Aksjer og andre verdipapir", "percent": 13},
+            {"group": "10", "component": "Aksjer og andre verdipapir", "percent": 60},
+            {
+                "group": "Topp 1 prosent",
+                "component": "Aksjer og andre verdipapir",
+                "percent": 80,
+            },
+            {
+                "group": "Topp 0,1 prosent",
+                "component": "Aksjer og andre verdipapir",
+                "percent": 89,
+            },
+            {"group": "1", "component": "Aksjesparekonto", "percent": 11},
+            {"group": "2", "component": "Aksjesparekonto", "percent": 10},
+            {"group": "3", "component": "Aksjesparekonto", "percent": 8},
+            {"group": "4", "component": "Aksjesparekonto", "percent": 10},
+            {"group": "5", "component": "Aksjesparekonto", "percent": 12},
+            {"group": "6", "component": "Aksjesparekonto", "percent": 12},
+            {"group": "7", "component": "Aksjesparekonto", "percent": 12},
+            {"group": "8", "component": "Aksjesparekonto", "percent": 12},
+            {"group": "9", "component": "Aksjesparekonto", "percent": 13},
+            {"group": "10", "component": "Aksjesparekonto", "percent": 9},
+            {"group": "Topp 1 prosent", "component": "Aksjesparekonto", "percent": 5},
+            {"group": "Topp 0,1 prosent", "component": "Aksjesparekonto", "percent": 2},
+            {"group": "1", "component": "Annen finansformue", "percent": 9},
+            {"group": "2", "component": "Annen finansformue", "percent": 6},
+            {"group": "3", "component": "Annen finansformue", "percent": 5},
+            {"group": "4", "component": "Annen finansformue", "percent": 6},
+            {"group": "5", "component": "Annen finansformue", "percent": 7},
+            {"group": "6", "component": "Annen finansformue", "percent": 7},
+            {"group": "7", "component": "Annen finansformue", "percent": 7},
+            {"group": "8", "component": "Annen finansformue", "percent": 7},
+            {"group": "9", "component": "Annen finansformue", "percent": 7},
+            {"group": "10", "component": "Annen finansformue", "percent": 7},
+            {
+                "group": "Topp 1 prosent",
+                "component": "Annen finansformue",
+                "percent": 6,
+            },
+            {
+                "group": "Topp 0,1 prosent",
+                "component": "Annen finansformue",
+                "percent": 6,
+            },
+        ],
+        "wealth_groups": [
+            {
+                "code": "Ialt",
+                "label": "I alt",
+                "cutoff": None,
+                "households": 2616826,
+                "mean": 3890400,
+            },
+            {
+                "code": "01",
+                "label": "Desil 1",
+                "cutoff": None,
+                "households": 261682,
+                "mean": -1031500,
+            },
+            {
+                "code": "02",
+                "label": "Desil 2",
+                "cutoff": -192800,
+                "households": 261685,
+                "mean": -42900,
+            },
+            {
+                "code": "03",
+                "label": "Desil 3",
+                "cutoff": 20800,
+                "households": 261680,
+                "mean": 159700,
+            },
+            {
+                "code": "04",
+                "label": "Desil 4",
+                "cutoff": 390300,
+                "households": 261684,
+                "mean": 748600,
+            },
+            {
+                "code": "05",
+                "label": "Desil 5",
+                "cutoff": 1131000,
+                "households": 261682,
+                "mean": 1538100,
+            },
+            {
+                "code": "06",
+                "label": "Desil 6",
+                "cutoff": 1955700,
+                "households": 261683,
+                "mean": 2406400,
+            },
+            {
+                "code": "07",
+                "label": "Desil 7",
+                "cutoff": 2880100,
+                "households": 261681,
+                "mean": 3415800,
+            },
+            {
+                "code": "08",
+                "label": "Desil 8",
+                "cutoff": 3996700,
+                "households": 261683,
+                "mean": 4715300,
+            },
+            {
+                "code": "09",
+                "label": "Desil 9",
+                "cutoff": 5543100,
+                "households": 261682,
+                "mean": 6787800,
+            },
+            {
+                "code": "10",
+                "label": "Desil 10",
+                "cutoff": 8454200,
+                "households": 261683,
+                "mean": 20211300,
+            },
+            {
+                "code": "05b",
+                "label": "Høgaste 5 prosent",
+                "cutoff": 12140200,
+                "households": 130842,
+                "mean": 30419900,
+            },
+            {
+                "code": "01b",
+                "label": "Høgaste 1 prosent",
+                "cutoff": 28250400,
+                "households": 26169,
+                "mean": 84551200,
+            },
+            {
+                "code": "01c",
+                "label": "Høgaste 0,1 prosent",
+                "cutoff": 133425400,
+                "households": 2617,
+                "mean": 402084700,
+            },
+        ],
+        "housing_bins": [
+            {"lower": 0, "upper": 1000000, "count": 96400},
+            {"lower": 1000000, "upper": 2000000, "count": 253300},
+            {"lower": 2000000, "upper": 3000000, "count": 353800},
+            {"lower": 3000000, "upper": 4000000, "count": 318000},
+            {"lower": 4000000, "upper": 5000000, "count": 226200},
+            {"lower": 5000000, "upper": 6000000, "count": 149000},
+            {"lower": 6000000, "upper": 7000000, "count": 95500},
+            {"lower": 7000000, "upper": 8000000, "count": 61500},
+            {"lower": 8000000, "upper": 9000000, "count": 41900},
+            {"lower": 9000000, "upper": 10000000, "count": 28000},
+            {"lower": 10000000, "upper": 11000000, "count": 19200},
+            {"lower": 11000000, "upper": 12000000, "count": 14200},
+            {"lower": 12000000, "upper": 13000000, "count": 10900},
+            {"lower": 13000000, "upper": 14000000, "count": 8700},
+            {"lower": 14000000, "upper": 15000000, "count": 7300},
+            {"lower": 15000000, "upper": 16000000, "count": 6100},
+            {"lower": 16000000, "upper": 17000000, "count": 4600},
+            {"lower": 17000000, "upper": 18000000, "count": 3700},
+            {"lower": 18000000, "upper": 19000000, "count": 2700},
+            {"lower": 19000000, "upper": 20000000, "count": 2300},
+            {"lower": 20000000, "upper": 21000000, "count": 1800},
+            {"lower": 21000000, "upper": 22000000, "count": 1400},
+            {"lower": 22000000, "upper": 23000000, "count": 1100},
+            {"lower": 23000000, "upper": 24000000, "count": 900},
+            {"lower": 24000000, "upper": 25000000, "count": 700},
+            {"lower": 25000000, "upper": 26000000, "count": 500},
+            {"lower": 26000000, "upper": 27000000, "count": 500},
+            {"lower": 27000000, "upper": 28000000, "count": 400},
+            {"lower": 28000000, "upper": 29000000, "count": 400},
+            {"lower": 29000000, "upper": 30000000, "count": 400},
+        ],
+    }
+
+
+# END GENERATED PUBLIC REFERENCE
 
 
 if __name__ == "__main__":
