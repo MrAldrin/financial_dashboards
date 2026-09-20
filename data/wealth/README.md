@@ -36,6 +36,16 @@ Figure 2 supplies exact published 2024 means for ten wealth deciles. Figure 3 su
 
 One full-owner tax unit, primary home, undiscounted other assets and fully deductible debt. Joint assessment doubles the allowance and upper wealth-tax threshold, not the property's valuation threshold. It does not cover ordinary cohabitants as a single unit, partial ownership, discounted shares/debt allocation, municipal exceptions, or municipal property tax. The reference is explicitly based on the published rate page; legal adoption history remains a research task. Input income is gross annual income and affects only burden ratios, never the wealth-tax base.
 
+## Distribution-weighted illustration
+
+`weighted_policy_effect` uses the same household calculator as the curves. It inserts all bin edges and both policies' valuation/allowance/upper-rate breakpoints, then integrates tax differences with trapezoids. This is exact for the supported piecewise-linear schedules under a uniform within-bin distribution; it is not tax on a group-average home. It also evaluates per-bin minimum/maximum differences as conditional within-bin-placement bounds.
+
+The app explicitly applies the selected household's debt, undiscounted assets and assessment status to **every property**. This is one tax unit per home, not an inferred ownership distribution. Tail counts are user assumptions (default 1,000 total, half in 30–40m and half in 40–60m), never published observations. Sensitivity crosses 0.5/1/1.5 times selected debt with 0/1/2 times assumed tail counts and takes the extrema across within-bin placements. It cannot capture unknown asset/debt correlations, ownership structures, bin-edge errors, or values above the assumed tail cap. The resulting range is not a confidence interval or forecast of actual Norwegian receipts. The personal income slider does not affect this static model.
+
+## Validation
+
+`uv run python -m unittest discover -s tests` covers mechanics, integration, reference totals, missing cutoffs and wealth brackets. `uv run scripts/check_wealth_browser.py` serves the exported `_site` on a temporary local port, runs Chrome/Chromium and verifies a 10m reform and reset to 14m. It does not restart a Marimo session. The notebook runtime uses only Marimo, Polars and Altair; offline scripts have their own isolated dependencies.
+
 ## Remaining data gaps
 
 - Housing tail beyond 30m and explicit original bin-edge definitions.

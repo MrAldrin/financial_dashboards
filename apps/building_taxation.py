@@ -108,7 +108,9 @@ def _(get_tiers, set_tiers):
         for t in current:
             if t["limit"] is not None:
                 last_limit = max(last_limit, t["limit"])
-        new_limit = last_limit + 5_000_000
+        if last_limit >= 200_000_000:
+            return
+        new_limit = min(last_limit + 5_000_000, 200_000_000)
         new_tier = {"limit": new_limit, "rate": 50.0}
         new_tiers = []
         inserted = False
@@ -151,7 +153,8 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
         if not is_last:
             limit_input = mo.ui.number(
                 value=tier["limit"],
-                start=1,
+                start=0,
+                stop=200_000_000,
                 label=f"Grense NOK (Trinn {i + 1})",
                 step=1_000_000,
                 on_change=lambda v, idx=i: update_tier(idx, "limit", v),
@@ -251,8 +254,9 @@ def _(
 ):
     tier_limits = [tier["limit"] for tier in get_tiers() if tier["limit"] is not None]
     mo.stop(
-        len(tier_limits) != len(set(tier_limits)),
-        mo.md("**Bruk ulike grenser for hvert trinn.**"),
+        len(tier_limits) != len(set(tier_limits))
+        or any(limit <= 0 for limit in tier_limits),
+        mo.md("**Bruk ulike, positive grenser for hvert trinn.**"),
     )
     curve_max = max(chart_max.value, selected_home.value, *tier_limits, 14_000_000)
     shared_inputs = dict(
@@ -416,7 +420,7 @@ def _(curve_max, get_tiers, selected_home):
     housing_df = pl.DataFrame(reference["housing_bins"])
     housing_bars = (
         alt.Chart(housing_df)
-        .mark_bar(color="#999", opacity=0.8)
+        .mark_bar(color="#999", opacity=0.8, clip=True)
         .encode(
             x=alt.X(
                 "lower:Q",
@@ -444,7 +448,7 @@ def _(curve_max, get_tiers, selected_home):
         alt.Chart(
             pl.DataFrame({"lower": [30_000_000], "upper": [max(30_000_000, curve_max)]})
         )
-        .mark_rect(color="#e9d8a6", opacity=0.35)
+        .mark_rect(color="#e9d8a6", opacity=0.35, clip=True)
         .encode(x="lower:Q", x2="upper:Q")
     )
     housing_chart = (housing_bars + histogram_rules + unknown_tail).properties(
@@ -499,6 +503,149 @@ def _(get_tiers, housing_df, reference, selected_rows):
         ]
     )
     return
+
+
+@app.cell
+def _():
+    tail_count_ui = mo.ui.number(
+        start=0,
+        stop=100_000,
+        value=1000,
+        step=500,
+        label="Antatt antall boliger over 30 mill. (ikke observert)",
+    )
+    tail_upper_ui = mo.ui.number(
+        start=50_000_000,
+        stop=200_000_000,
+        value=60_000_000,
+        step=10_000_000,
+        label="Antatt øvre boligverdi i halen (NOK)",
+    )
+    mo.vstack(
+        [
+            mo.md(
+                "### Fordelingsvektet illustrasjon — ikke et anslag på Norges faktiske proveny\n"
+                "**Felles profil:** Vi legger samme gjeld, andre eiendeler og fastsettingsform som "
+                "du valgte over, på alle boliger. Én hel-eier-skatteenhet per bolig. "
+                "Dette er en kontrollert øvelse, ikke observerte norske husholdninger. "
+                "Halen er selvvalgt: halvparten i 30–40 mill., halvparten i 40 mill.–øvre verdi. "
+                "Alle intervaller antas jevnt fordelt i midtestimatet."
+            ),
+            mo.hstack([tail_count_ui, tail_upper_ui]),
+        ]
+    )
+    return tail_count_ui, tail_upper_ui
+
+
+@app.cell
+def _(policy_inputs, reference, shared_inputs, tail_count_ui, tail_upper_ui):
+    population_results = []
+    for debt_factor in (0.5, 1.0, 1.5):
+        for tail_factor in (0.0, 1.0, 2.0):
+            assumed_bins = reference["housing_bins"] + [
+                dict(
+                    lower=30_000_000,
+                    upper=40_000_000,
+                    count=tail_count_ui.value * tail_factor / 2,
+                ),
+                dict(
+                    lower=40_000_000,
+                    upper=tail_upper_ui.value,
+                    count=tail_count_ui.value * tail_factor / 2,
+                ),
+            ]
+            population_effect = weighted_policy_effect(
+                assumed_bins,
+                policy_inputs,
+                {
+                    **shared_inputs,
+                    "mortgage_debt": shared_inputs["mortgage_debt"] * debt_factor,
+                },
+            )
+            population_results.append(
+                dict(
+                    gjeldsfaktor=debt_factor,
+                    halefaktor=tail_factor,
+                    **population_effect,
+                )
+            )
+    central_effect = next(
+        r for r in population_results if r["gjeldsfaktor"] == 1 and r["halefaktor"] == 1
+    )
+    sensitivity_low = min(r["minimum"] for r in population_results)
+    sensitivity_high = max(r["maximum"] for r in population_results)
+    population_table = pl.DataFrame(population_results).with_columns(
+        pl.col("uniform", "minimum", "maximum").truediv(1_000_000).round(1)
+    )
+    mo.vstack(
+        [
+            mo.md(
+                f"**Illustrert årlig endring i samlede skatteinntekter: {central_effect['uniform'] / 1_000_000:+.1f} mill. kr.** "
+                "Minus betyr mindre skatt enn 2026-referansen.\n\n"
+                f"**Sensitivitet: {sensitivity_low / 1_000_000:+.1f} til {sensitivity_high / 1_000_000:+.1f} mill. kr.** "
+                "Dette er ikke et konfidensintervall eller en nasjonal prognose. "
+                "Vi varierer gjelden til 0,5×/1×/1,5× din valgte gjeld og haleantallet til 0×/1×/2× antakelsen. "
+                "I tillegg brukes laveste/høyeste skatteendring innen hvert verdiintervall. "
+                "Hvis valgt gjeld er null, gir gjeldsfaktorene samme profil. "
+                "Ukjente eierforhold, samvariasjon mellom bolig/annen formue/gjeld og verdier over haletaket "
+                "er ikke fanget av spennet. Inntekt og atferd endrer ikke dette statiske regnestykket."
+            ),
+            mo.accordion(
+                {
+                    "Vis regnestykkets sensitivitet (millioner kr/år)": mo.ui.table(
+                        population_table, selection=None
+                    )
+                }
+            ),
+        ]
+    )
+    return central_effect, population_results
+
+
+@app.function
+def weighted_policy_effect(
+    bins: list[dict], policies: list[dict], household: dict
+) -> dict:
+    """Integrate tax differences per property, not tax on the average home.
+
+    Piecewise linear tax is integrated exactly by trapezoids including every
+    valuation, allowance and upper-rate kink. Per-bin extrema are conditional
+    bounds for unknown within-bin placement, not statistical confidence bounds.
+    """
+    if len(policies) != 2 or any(
+        b["upper"] <= b["lower"] or b["count"] < 0 for b in bins
+    ):
+        raise ValueError("Two policies and valid nonnegative property bins required")
+    maximum = max(b["upper"] for b in bins)
+    edges = [float(b[key]) for b in bins for key in ("lower", "upper")]
+    inputs = {
+        **household,
+        "max_value": maximum,
+        "selected_value": 0,
+        "extra_values": edges,
+    }
+    first_pass = [calculate_wealth_tax_df(**policy, **inputs) for policy in policies]
+    inputs["extra_values"] = sorted(
+        set(pl.concat(first_pass)["market_value"].to_list())
+    )
+    frames = [calculate_wealth_tax_df(**policy, **inputs) for policy in policies]
+    values = frames[0]["market_value"].to_list()
+    differences = (frames[1]["tax"] - frames[0]["tax"]).to_list()
+    uniform = minimum = maximum_effect = 0.0
+    for band in bins:
+        points = [
+            (v, delta)
+            for v, delta in zip(values, differences, strict=True)
+            if band["lower"] <= v <= band["upper"]
+        ]
+        area = sum(
+            (right[0] - left[0]) * (right[1] + left[1]) / 2
+            for left, right in zip(points, points[1:])
+        )
+        uniform += band["count"] * area / (band["upper"] - band["lower"])
+        minimum += band["count"] * min(delta for _, delta in points)
+        maximum_effect += band["count"] * max(delta for _, delta in points)
+    return {"uniform": uniform, "minimum": minimum, "maximum": maximum_effect}
 
 
 @app.cell

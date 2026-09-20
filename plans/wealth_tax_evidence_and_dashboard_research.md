@@ -1,6 +1,6 @@
 # Research plan: Norwegian housing wealth, tax incidence, and public revenue
 
-**Status:** Research and design proposal; implementation requires separate approval.  
+**Status:** Implementation approved in the follow-up session; first working dashboard delivered for review. See the implementation record at the bottom. Earlier “plan only” wording records the original research-session scope.  
 **Initial source review:** 20 September 2026.  
 **Target app:** `apps/building_taxation.py`.  
 **Scope:** Primary-residence wealth taxation first, within a combined household balance-sheet and income context. Secondary-residence policy and municipal property tax are separate extensions.  
@@ -496,20 +496,36 @@ Source IDs S11–S13 from the first draft concerned commissioned/restricted data
 
 ### Pending discussion / open research
 
-- [ ] User review of the revised plan; no implementation approved in this session.
+- [x] Follow-up user approval to implement incrementally, adapting measures to available open data.
 - [ ] Confirm enacted-law references, dates, co-ownership rules, and municipal exceptions from published sources.
 - [ ] Save reproducible public-source snapshots and complete the claims ledger.
 - [ ] Reconcile February versus May threshold-revenue estimates and comparison baselines.
-- [ ] Extract/reconstruct public housing-histogram bins and document interpolation/tail assumptions.
-- [ ] Extract S17 financial-wealth chart data and search open sources for matching housing/debt components by wealth decile.
+- [x] Reconstruct public housing-figure bins from PDF vectors; document interpolation, assumed bin boundaries and unknown tail.
+- [x] Extract S17 financial-wealth chart data; display verified financial composition. Matching housing/debt components remain an open extension.
 - [ ] Select initial weighted profiles and low/base/high population assumptions using open data only.
 - [ ] Agree the first plot set and order of incremental user evaluation in the same app.
 
 ### Implementation — for a later agent after approval
 
-- [ ] Version and test the tax engine, including distinct tier and tax-onset thresholds.
-- [ ] Preserve and enhance the full curves; align a population histogram and exposure counts underneath.
-- [ ] Add other-asset/debt/income controls, wealth brackets and wealth-composition context in the combined view.
-- [ ] Add distribution-weighted illustrative calculations, then refine national estimates with representative profiles and sensitivity.
-- [ ] Evaluate optional extra plots only after the core coordinated set is usable.
-- [ ] Run code checks, WASM export, and browser validation after implementation.
+- [x] Test the simplified full-owner tax engine, including distinct tier/onset thresholds and the upper tax band. Full mixed-asset legal coverage remains excluded.
+- [x] Preserve and enhance full curves; align reconstructed housing counts and show exposure estimates.
+- [x] Add asset/debt/income controls, wealth brackets and verified financial-composition context in the same app.
+- [x] Add distribution-weighted common-profile illustration with debt, tail and within-bin sensitivity.
+- [ ] Refine national estimates with evidence-backed representative profiles and ownership mapping.
+- [ ] Evaluate optional extra plots only after user review of the core coordinated set.
+- [x] Run Ruff, Marimo checks, unit tests, WASM export and actual browser interaction checks.
+
+### Implementation record — 20 September 2026
+
+Four reviewable `feat - wealth lab` JJ changes, without moving bookmarks or integrating into `main`:
+
+1. **Tax mechanics:** progressive valuation, exact breakpoints, unclipped tax base, separate economic wealth, upper rate on net taxable wealth before the allowance, income-ratio zero handling and worked-example tests.
+2. **Combined playground:** shared household/policy controls, retained dynamic tiers, 10/14/20m housing presets, full valuation/base/tax/difference/income curves, selected-value annotation, onset/upper-band markers and expandable explanations.
+3. **Public reference:** immutable source snapshots with URLs, queries and checksums; SSB API v2 wealth brackets; embedded article chart series; reproducibly digitised Ministry housing figure. `data/wealth/README.md` documents populations, transformations, assumptions and exclusions. Compact data is generated into the notebook so WASM needs neither local helper modules nor live SSB calls.
+4. **Weighted illustration:** exact piecewise-linear integration across the housing bins, one full-owner tax unit per property, common balance sheet linked explicitly to the personal controls, assumed 30–40m and 40m–tail-cap bins, nine debt/tail combinations and within-bin extrema. These are conditional modelling scenarios, not actual national receipts or confidence intervals. Browser testing also caught and fixed numeric-widget step origins that displayed a one-krone offset.
+
+**Adaptation to available data:** S17 supplies financial assets by net-wealth decile, not a complete housing/debt balance sheet. Show that verified story with separate nested top-group detail; do not fabricate the missing components. Housing reconstruction totals about 1.71m properties in the displayed categories, with 2.03% in labels above 14m, consistent with the source's rounded 2%. The unshown tail is always labelled unknown; assumed tail values affect only the model.
+
+**Verification performed:** `uv run ruff check .`; `uv run marimo check apps/building_taxation.py`; 14 unittest cases; snapshot/embedded-data consistency check; full `.github/scripts/build.py` export of all three apps/notebooks; final target re-export; Chrome execution of the exported WASM app, switching 14m→10m→14m and checking both household and aggregate results and chart rendering without browser errors. Repeat the browser test with `uv run scripts/check_wealth_browser.py`. The runtime uses only Marimo, Polars and Altair (WASM-compatible); extraction-only PyMuPDF and browser-test Playwright are not notebook dependencies.
+
+**Next review / known limits:** evaluate chart density, responsive layout and control clarity; add shared hover and richer tier highlighting if useful. Housing presets reset housing tiers only, not all custom tax controls. Still open: complete legal adoption/ownership rules, municipal exceptions, discounted-asset debt allocation, official-scenario comparison reconciliation, matching housing/debt composition, population ownership mapping and credible national-profile modelling. No behavioural effects, property tax, precise household percentiles, or inferred income of expensive-home owners are claimed.
