@@ -1,6 +1,12 @@
 import unittest
+from copy import deepcopy
 
-from apps.building_taxation import exposure_above, public_reference_data, wealth_bracket
+from apps.building_taxation import (
+    decile_net_balance,
+    exposure_above,
+    public_reference_data,
+    wealth_bracket,
+)
 
 
 class PublicReferenceTests(unittest.TestCase):
@@ -23,6 +29,36 @@ class PublicReferenceTests(unittest.TestCase):
         self.assertIn("90. og 95.", wealth_bracket(8_454_200, groups))
         self.assertIn("0. og 10.", wealth_bracket(-10_000_000, groups))
         self.assertIn("Topp 0,1", wealth_bracket(133_425_400, groups))
+
+    def test_decile_net_balance_identity(self) -> None:
+        data = public_reference_data()
+        frame = decile_net_balance(data)
+        for row in frame.to_dicts():
+            self.assertEqual(
+                row["Finansformue"] + row["Realkapital minus samlet gjeld"],
+                row["net_wealth"],
+            )
+        self.assertEqual(frame["Realkapital minus samlet gjeld"][0], -1_242_300)
+        self.assertEqual(frame["Realkapital minus samlet gjeld"][-1], 7_889_300)
+        weighted_mean = (frame["net_wealth"] * frame["households"]).sum() / frame[
+            "households"
+        ].sum()
+        # Preserve the published inconsistency; do not force calibrated totals.
+        self.assertAlmostEqual(
+            weighted_mean - data["wealth_groups"][0]["mean"], 462.106369, places=5
+        )
+        self.assertEqual(
+            frame["households"].sum(), data["wealth_groups"][0]["households"] - 1
+        )
+
+    def test_decile_missing_values_rejected(self) -> None:
+        data = deepcopy(public_reference_data())
+        data["financial_means"][0]["mean"] = None
+        with self.assertRaises(ValueError):
+            decile_net_balance(data)
+        data["financial_means"].pop()
+        with self.assertRaises(ValueError):
+            decile_net_balance(data)
 
     def test_partial_bin_bounds(self) -> None:
         band = [{"lower": 0, "upper": 1_000_000, "count": 1000}]

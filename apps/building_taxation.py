@@ -652,6 +652,52 @@ def weighted_policy_effect(
 def _(reference):
     financial_means_df = pl.DataFrame(reference["financial_means"])
     composition_df = pl.DataFrame(reference["financial_composition"])
+    balance_df = decile_net_balance(reference)
+    balance_components = balance_df.unpivot(
+        on=["Finansformue", "Realkapital minus samlet gjeld"],
+        index="decile",
+        variable_name="component",
+        value_name="amount",
+    )
+    balance_bars = (
+        alt.Chart(balance_components)
+        .mark_bar()
+        .encode(
+            x=alt.X("decile:O", title="Desil etter beregnet nettoformue (1 = lavest)"),
+            y=alt.Y(
+                "amount:Q", title="Gjennomsnitt per husholdning (NOK)", stack="zero"
+            ),
+            color=alt.Color(
+                "component:N",
+                title="Del av nettoformuen",
+                scale=alt.Scale(
+                    domain=["Finansformue", "Realkapital minus samlet gjeld"],
+                    range=["#0072b2", "#d89b32"],
+                ),
+            ),
+            tooltip=["decile:O", "component:N", alt.Tooltip("amount:Q", format=",.0f")],
+        )
+    )
+    balance_markers = (
+        alt.Chart(balance_df)
+        .mark_point(shape="diamond", filled=True, color="#222", size=85)
+        .encode(
+            x="decile:O",
+            y="net_wealth:Q",
+            tooltip=[
+                "decile:O",
+                alt.Tooltip("net_wealth:Q", title="Nettoformue", format=",.0f"),
+            ],
+        )
+    )
+    balance_zero = (
+        alt.Chart(pl.DataFrame({"zero": [0]}))
+        .mark_rule(color="#666")
+        .encode(y="zero:Q")
+    )
+    net_balance_chart = (balance_bars + balance_markers + balance_zero).properties(
+        width=950, height=280
+    )
     financial_mean_chart = (
         alt.Chart(financial_means_df)
         .mark_bar(color="#0072b2")
@@ -696,6 +742,28 @@ def _(reference):
                 "Finansformue er bankinnskudd, verdipapirer m.m., **ikke bolig eller gjeld**. "
                 "Vi viser den verifiserte delhistorien fremfor å finne på bolig- og gjeldsfordelingen."
             ),
+            mo.md(
+                "#### Nettoformuen: finansformue og realkapital etter samlet gjeld\n"
+                "**Svart diamant = publisert nettoformue.** Blått = publisert finansformue. "
+                "Gult = nettoformue minus finansformue, altså realkapital minus **all** gjeld. "
+                "Vi trekker fra kompatible desilgjennomsnitt fra SSB 10318 og artikkelens figur 2, "
+                "samme år og befolkning. Dette er en regnskapsmessig differanse, ikke en antatt boligportefølje. "
+                "Negativt gult betyr at samlet gjeld overstiger realkapitalen; det betyr ikke at boligen har negativ verdi. "
+                "Realkapital omfatter mer enn bolig, og samlet gjeld omfatter mer enn boliglån."
+            ),
+            net_balance_chart,
+            mo.accordion(
+                {
+                    "Avstemming av publiserte desiltall": mo.md(
+                        "SSB 10318s desilgrupper summerer til én husholdning mindre enn landstotalen. "
+                        "Det vektede desilgjennomsnittet er om lag 462 kr høyere enn publisert "
+                        "landsgjennomsnitt på 3 890 400 kr (ca. 0,012 %). Årsaken er ikke avklart. "
+                        "Vi beholder de publiserte verdiene uten å skalere dem for å tvinge samsvar. "
+                        "Gul differanse er beregnet fra publiserte gjennomsnitt, ikke direkte observerte porteføljer."
+                    )
+                }
+            ),
+            mo.md("#### Finansformuen alene"),
             financial_mean_chart,
             decile_composition,
             top_composition,
@@ -708,7 +776,40 @@ def _(reference):
             ),
         ]
     )
-    return financial_mean_chart, decile_composition, top_composition
+    return financial_mean_chart, decile_composition, top_composition, net_balance_chart
+
+
+@app.function
+def decile_net_balance(reference: dict) -> pl.DataFrame:
+    """Accounting residual from compatible 2024 net-wealth-ranked means.
+
+    Net wealth = real assets + financial assets - total debt. Subtracting
+    financial assets does NOT identify housing equity or mortgage debt.
+    The sources exclude student households and use the same wealth ranking.
+    """
+    means = {row["decile"]: row["mean"] for row in reference["financial_means"]}
+    groups = {
+        int(row["code"]): row
+        for row in reference["wealth_groups"]
+        if row["code"].isdigit()
+    }
+    if set(means) != set(range(1, 11)) or set(groups) != set(means):
+        raise ValueError("Exactly ten matching net-wealth deciles required")
+    rows = []
+    for decile in sorted(means):
+        if means[decile] is None or groups[decile]["mean"] is None:
+            raise ValueError("Missing source mean; cannot treat it as zero")
+        rows.append(
+            {
+                "decile": decile,
+                "Finansformue": means[decile],
+                "Realkapital minus samlet gjeld": groups[decile]["mean"]
+                - means[decile],
+                "net_wealth": groups[decile]["mean"],
+                "households": groups[decile]["households"],
+            }
+        )
+    return pl.DataFrame(rows)
 
 
 @app.function

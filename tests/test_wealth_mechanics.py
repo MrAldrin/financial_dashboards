@@ -36,6 +36,7 @@ class WealthMechanicsTests(unittest.TestCase):
         _, definitions = app.run()
         self.assertTrue((definitions["difference_df"]["difference"] == 0).all())
         definitions["coordinated_curves"].to_dict(validate=True)
+        definitions["net_balance_chart"].to_dict(validate=True)
 
     def test_worked_threshold_comparison(self) -> None:
         old = [{"limit": 10_000_000, "rate": 25}, {"limit": None, "rate": 70}]
