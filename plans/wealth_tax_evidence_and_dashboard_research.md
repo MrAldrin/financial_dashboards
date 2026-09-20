@@ -3,22 +3,33 @@
 **Status:** Research and design proposal; implementation requires separate approval.  
 **Initial source review:** 20 September 2026.  
 **Target app:** `apps/building_taxation.py`.  
-**Scope:** Primary-residence wealth taxation first. Secondary residences and municipal property tax are separate extensions.
+**Scope:** Primary-residence wealth taxation first, within a combined household balance-sheet and income context. Secondary-residence policy and municipal property tax are separate extensions.  
+**User clarification incorporated:** 20 September 2026. Preserve the full-range interactive curves; use open data only; allow transparent distribution-based estimates; build toward one coordinated dashboard, not separate replacement apps.
 
 ## 1. Purpose and recommendation
 
-Turn the current hypothetical-household calculator into an evidence-led dashboard answering:
+Extend the existing interactive policy sandbox with evidence and population context. **The full tax and valuation curves are a core educational feature, not a temporary substitute for individual tax-return data.** They let users discover how brackets, debt, other assets, and allowances interact across the entire home-value range, including where no tax is due and where the slope becomes steeper.
 
-1. **How unusual is this home's value, and how wealthy is its household?**
-2. **Who pays more or less under a proposed tax rule, and by how much?**
-3. **What is the annual effect on public tax revenue, relative to a clearly defined alternative?**
-4. **How often does high housing wealth coexist with low income or few liquid assets?**
+The dashboard should answer:
 
-The dashboard should test claims about “ordinary homeowners” with distributions, not replace anecdotes with other anecdotes. Expensive housing, net wealth, income, and ability to pay are different quantities. Show them alongside one another rather than selecting a single definition of “rich.”
+1. **How do these rules interact, across all home values and for my selected example?**
+2. **How many Norwegian homes lie in the ranges affected by this change?**
+3. **What do households in each wealth decile own, and how important is housing versus other assets and debt?**
+4. **Who pays more or less, and what is the estimated annual revenue effect?**
+5. **How do economic wealth, income, and available cash differ?**
 
-**Recommended sequence:** establish correct rules and comparisons; ship a public-data explanation and household calculator; obtain existing official distribution/revenue estimates; only then decide whether the available data justify a continuously adjustable national simulator.
+The dashboard should test claims about “ordinary homeowners” with distributions, not replace anecdotes with other anecdotes. Expensive housing, net wealth, income, and ability to pay are different quantities. Show them together, with focused explanations available when helpful.
 
-A useful first release does **not** require a fabricated Norwegian population. Conversely, a smooth slider does not make an unsupported national estimate reliable.
+### Agreed direction for the next agent
+
+- **Keep and improve the full-range curves.** A selected-household point is an annotation on those curves, never their replacement.
+- **One dashboard with multiple coordinated plots.** Explain components individually, but also provide a combined playground where the controls and their consequences are visible together.
+- **Open data only.** Use published SSB tables/APIs, articles and chart data, and other openly published official material. No ministry/SSB outreach, email, eInnsyn requests, commissioned tables, paid data, restricted microdata, or institutional-access work.
+- **Distribution-based approximation is welcome.** We do not need every household record. Use public distributions, weighted groups, interpolation, and explicit assumptions to make useful exploratory calculations. Distinguish observations from estimates and show sensitivity without treating missing microdata as a reason to abandon the feature.
+- **Preserve the research already gathered.** Official scenario estimates and wealth cutoffs remain useful reference points and validation checks, not a restriction to preset-only interaction.
+- **Plan now, implement later.** This document is the handoff specification for a later agent; no charts, prototypes, or app code are being built in this session.
+
+**Recommended sequence:** extend the current curves and expose their mechanics; align them with a public-data housing distribution; add wealth-composition context and combined controls; develop clearly labelled distribution-weighted revenue estimates. Work incrementally so the user can evaluate the plots in the same app.
 
 ## 2. Findings from the initial research
 
@@ -46,7 +57,7 @@ Do not confuse the NOK 14 million **housing valuation threshold** with the NOK 1
 
 ### 2.3 Existing evidence directly relevant to the dashboard
 
-**Housing rarity:** The Finance Ministry reported that approximately **98% of primary residences** would be valued entirely at 25% under the NOK 14 million threshold. Its 27 February presentation includes a primary-home value histogram in million-kroner bands and says about 2% of primary homes in the tax-card data were above NOK 14 million. This is a statement about **properties**, not the richest 2% of people. Request the underlying numbers, including the tail beyond the plotted range. [S2, S5]
+**Housing rarity:** The Finance Ministry reported that approximately **98% of primary residences** would be valued entirely at 25% under the NOK 14 million threshold. Its 27 February presentation includes a primary-home value histogram in million-kroner bands and says about 2% of primary homes in the tax-card data were above NOK 14 million. This is a statement about **properties**, not the richest 2% of people. Search for already-open numeric chart data; if unavailable, a documented approximation from the published plot is acceptable. Keep the unshown upper tail explicit rather than treating it as zero. [S2, S5]
 
 **The model change:** SSB's corrected 23 January analysis estimates an isolated **NOK 973 million increase** in annual wealth-tax receipts from the revised valuation model. It reports 318,700 people with increased tax, 229,400 with reduced tax, and 4,107,600 in the approximately unchanged category. The latter corresponds to the article's -200 to +199 kroner band; it is not necessarily exact zero. These are model estimates for people aged 17+, using 2023 data projected to 2026, not final 2026 tax outcomes. Documented downward valuation corrections are not incorporated. [S3]
 
@@ -61,7 +72,7 @@ Do not confuse the NOK 14 million **housing valuation threshold** with the NOK 1
 - Benefit a group with **average gross annual income of about NOK 1.72 million**.
 - Concentrate the reported relief strongly toward the top of the net-wealth distribution.
 
-The answer contains seven tables covering income bands, income deciles/top percentiles, net-wealth bands/deciles/top percentiles, and centrality classes. This is already much closer to the intended dashboard than an invented log-normal house-price distribution. However:
+The answer contains seven tables covering income bands, income deciles/top percentiles, net-wealth bands/deciles/top percentiles, and centrality classes. This provides valuable distributional context and calibration targets alongside the interactive curves and any public-data-based population approximation. However:
 
 - It concerns **20 million, not 14 million**.
 - Its units are people, not households; income is gross income, not salary or disposable income.
@@ -88,40 +99,38 @@ For illustration, **a household owning an entire NOK 14 million home, with no de
 
 This enables an honest dynamic statement such as “your specified household is in the top 5–10% bracket using 2024 reference data.” It does **not** justify “owners of 14-million homes are always in the top 5%,” or an invented exact rank such as “96.7th percentile.” A current-price input also needs a visible reference-year warning or an explicitly documented revaluation assumption.
 
-## 3. Audit of the current app and earlier plans
+## 3. Preserve the existing strengths and extend them
 
-### Useful foundations
+### The current curves are the foundation
 
-- Marimo reactive controls, Polars calculations, and Altair charts already exist.
-- Progressive, customisable valuation tiers are already implemented.
-- Personal debt, other net wealth, and joint-assessment inputs provide a starting point.
-- The current hardcoded comparison uses the now-published 14-million / 25%-70% baseline.
+- Marimo reactive controls, Polars calculations, Altair charts, and custom progressive tiers already support the intended exploratory experience.
+- A full curve across home values answers a different, important question from a single result: **where and why does tax begin, and how fast does it grow?**
+- Holding debt and other assets fixed while moving across house values is a deliberate controlled comparison. Keep it as the default household-mechanics mode.
+- The flat zero-tax region, the point where the allowance is exhausted, and the change in slope at a housing tier are exactly the features the user wants people to understand.
+- The existing 14-million / 25%-70% baseline is a useful starting point. Enhance its explanation, year/source labels, and treatment of the upper wealth-tax band.
 
-### Gaps that matter to the intended purpose
+### Additions, not replacements
 
-1. `calculate_wealth_tax_df` generates a house-value grid from zero to NOK 30 million. It is **not a dataset of Norwegian homes or taxpayers**.
-2. The same hypothetical debt and other wealth are applied at every point. This is legitimate for a controlled example, not for population totals.
-3. There is no selected-home value, population weight, income, liquidity, ownership share, or economic net-wealth ranking.
-4. The tax engine applies one flat rate; it omits the higher tax band and municipal variation.
-5. “Annen nettoformue” is not enough to recover both economic wealth and taxable wealth, or asset-dependent debt deductions. It also risks debt double-counting unless precisely defined.
-6. “Dagens regelverk” has no tax year, source, effective date, or explicit assumptions.
-7. The initial sandbox is 12 million / 30%-75%, rather than an explained policy alternative or a copy of the baseline.
-8. The chart cannot show a NOK 40 million example. Chart extent should be adjustable and include policy breakpoints exactly, not only coarse grid points.
-9. There is no dedicated display of tax differences, beneficiaries, statistical context, or uncertainty.
+1. Retain baseline/custom valuation and annual-tax lines over the full home-value range; include exact breakpoints and extend the range beyond 40 million when needed.
+2. Add a selected-value marker, a line showing the tax base **before clipping at zero**, and clear annotations for tier boundaries and the onset of tax liability.
+3. Add an aligned housing-value histogram underneath so users see both the rule and how many homes are exposed to it.
+4. Add income context, economic net wealth, wealth-composition plots, and a live difference curve; retain combined adjustment of debt, other assets, allowance, and valuation rules.
+5. Use public-data distributions to weight examples and develop an estimated population effect, with assumptions visible.
+6. Clarify “Annen nettoformue” or split it into asset/debt components when needed so economic wealth and taxable wealth stay distinct and debt is not deducted twice.
 
-### Earlier planning assumptions to replace, not silently perpetuate
+### Earlier ideas to carry forward with sources
 
-`plans/norwegian_taxation_dashboard_improvements.md` proposes unsourced population counts, housing-price averages, budget numbers, and a log-normal housing distribution. Treat these as **unverified placeholders**, not research findings.
+`plans/norwegian_taxation_dashboard_improvements.md` already points toward population distributions and public-revenue context. Keep that direction. Its proposed counts, housing-price averages, budget figures, and log-normal parameters are starting hypotheses to replace with open-source values or documented estimates, not reasons to discard population modelling.
 
-- A house-price distribution alone cannot produce credible wealth-tax receipts: liabilities depend jointly on debt, other assets, ownership, and allowances.
-- Total dwellings, primary residences, owner households, owners, and taxpayers are not interchangeable counts.
-- A single log-normal curve can fit the middle and still miss the expensive tail that drives this question.
-- “Housing wealth-tax revenue” has no unique standalone official meaning within a tax on total net wealth. Prefer the **change in total wealth-tax receipts caused by changing primary-housing rules**.
-- The older `norwegian_building_tax.md` labels 14 million as a 2024/2025 rule and combines thresholds from different years. Its legal assumptions need replacement if implementation is approved.
-- Do not portray borrowing with a fixed house value as a costless way to avoid tax. Borrowed money must go somewhere, and interest, asset purchases, retained cash, and economic net wealth must be accounted for.
-- “X nurses” based only on salaries understates employment costs. Budget equivalents are optional context, not proof of social benefit or actual spending commitments.
+- Prefer published bins or reconstructed public-chart bins to fitting a single curve from only a mean and median; use a fitted distribution when useful and show tail sensitivity.
+- A housing distribution directly supports counts above/below a threshold. Revenue additionally needs assumed debt, other assets and tax-unit structure; estimate these transparently rather than implying that property counts alone determine actual liabilities.
+- Distinguish homes, owners, households, and taxpayers in chart labels and weights.
+- Prefer **change in total wealth-tax receipts caused by primary-housing rules** over an undefined standalone “housing wealth tax.”
+- Update mixed-year legal parameters in older plans when implementing. Preserve source-backed findings in this plan.
+- Debt experiments are useful controlled comparisons, not advice that borrowing is free: explain the disposition of borrowed money if modelling a borrowing decision.
+- Budget equivalents are optional context and should use sourced full costs, not salaries alone.
 
-This research plan proposes replacing those assumptions; it does not modify the older files or approve implementation.
+This plan updates the design direction without changing the app or the older plan files.
 
 ## 4. Research workstreams
 
@@ -139,7 +148,7 @@ This research plan proposes replacing those assumptions; it does not modify the 
 1. Build a dated timeline from the 2021 request, the 2025 budget process, the January 2026 revised estimates, February proposals, and final 2026 legislation.
 2. Archive Skatteetaten's year-specific rates, applicable law and parliamentary adoption, ownership rules, debt-allocation guidance, and official worked examples.
 3. Extract the January SSB analysis, February presentation, parliamentary question 1404 tables, and May budget estimate with source dates and comparison definitions.
-4. Look for the equivalent distribution tables for **10 to 14 million**; request them if unpublished.
+4. Look for already-published equivalent distribution tables for **10 to 14 million**. If absent, record the gap and use labelled modelling assumptions; do not request data.
 5. Maintain a claims ledger: claim, speaker, date, evidence, correct unit, supported/unsupported/uncertain, and what data could resolve it.
 6. Review a small balanced set of reporting and stakeholder statements for the debate's framing. Use these to identify questions; use primary statistical/legal sources for numerical claims.
 
@@ -161,8 +170,10 @@ The following table metadata were checked live during the initial review:
 | [08603](https://www.ssb.no/statbank/table/08603) | Income, taxable wealth, debt and tax aggregates by region | Regional consistency checks | Linked portfolios |
 | [08815](https://www.ssb.no/statbank/table/08815) | Taxable wealth components, debt, wealth-tax totals/counts | Tax-system calibration | Undiscounted home values or joint distributions |
 | [14781](https://www.ssb.no/statbank/table/14781) | Preliminary 2024/2025 taxable housing wealth by region, age, sex, population; means/medians | More recent regional/age context | Full market-value home prices; independent property counts |
-| February presentation, slides 8–11 | Primary-home value histogram and above-14-million share | Housing rarity and data-request starting point | Reliable raw bin counts merely from the PDF plot |
-| Written question 1404 | Official fixed-scenario distribution and revenue estimates | “Who benefits?” for the 20-million proposal | Arbitrary slider scenarios |
+| February presentation, slides 8–11 | Primary-home value histogram and above-14-million share | Housing rarity; published bins or documented chart-based reconstruction for weighting | Exact raw counts merely from reading bar heights |
+| Written question 1404 | Official fixed-scenario distribution and revenue estimates | “Who benefits?” and model cross-checks for the 20-million proposal | Observed outcomes for arbitrary slider scenarios |
+| SSB, *Vekst i husholdningenes finansformue i 2024*, figures 2–3 [S17] | Financial wealth by net-wealth decile; financial-asset composition including top 1% and 0.1% | Open evidence for the wealth-composition view | Complete primary-home/debt breakdown by decile |
+| [10319](https://www.ssb.no/statbank/table/10319), metadata checked during revision | Mean net wealth by **income** decile | Optional income/wealth context | Asset composition by **wealth** decile; these rankings must not be confused |
 
 **Extraction protocol**
 
@@ -175,38 +186,38 @@ The following table metadata were checked live during the initial review:
 - Check overlap and denominator definitions before joining or comparing tables.
 - Keep 2024 final observations, 2025 preliminary figures, and 2026 projections distinct. The revised valuation model can create a methodological break, not just house-price inflation.
 
-**Deliverable:** source registry and feasibility matrix: available now, needs clarification, requestable, restricted, or unavailable.
+**Deliverable:** source registry and feasibility matrix: directly published, reconstructable from public material, estimated from public anchors, or unavailable within scope.
 
-### C. Obtain the missing linked information
+### C. Build usable distributions from open sources only
 
-Start with **existing analyses and their underlying public aggregates**, not a large bespoke data order.
+**No outreach or access applications.** The previous data-request route and draft letter are removed. Lack of individual records is expected; the task is to construct a useful, documented approximation from public distributions.
 
-1. Ask the Finance Ministry/Skatteetaten for the numeric dataset behind the February primary-home histogram, including bin definitions, counts above 30 million, valuation vintage, and the unit of observation.
-2. Ask for the underlying 10-to-14-million distribution tables and any later revisions, alongside comparable 10-to-20-million estimates.
-3. Check existing SSB commissioned tables through eInnsyn. SSB says delivered commissioned tables are publicly available and can be requested free; a new custom order has a quoted cost and delivery time. [S11]
-4. Request a quote only after checking whether existing material answers the key questions. Do not place a paid order without user approval.
+1. Search SSB Statbank and article figures, including their public “Vis som tabell” data, downloadable files and embedded chart series. Public official PDFs are also in scope.
+2. For the housing histogram, prefer published numeric bins. If only a plot is open, reconstruct approximate bar values, record the page/axes/method, and check against published totals and the above-14-million share. Label this as digitised/estimated, not exact administrative counts.
+3. Preserve the source bins; add finer interpolation near movable thresholds only with an explicit rule (for example uniform density within a bin). Show a bounds/sensitivity option for thresholds inside coarse bins.
+4. Keep the upper tail, including 30–40m and 40m+, represented. If its shape is unavailable, use clearly stated alternative tail assumptions rather than silently excluding it.
+5. Use SSB wealth-group counts, cutoffs, means and available component totals as anchors for weighted representative groups. Add assumed within-group variation for tax calculations, where useful; we do not need a reconstructed record for every person.
+6. Search for open debt and housing/financial-asset composition by the **same wealth ranking**. Record which relationships are published and which are assumed. Never join separate decile tables as if they identify the same households unless their ranking and population match.
+7. Use official published reform estimates as reasonableness checks, allowing differences in years and definitions. They are benchmarks, not a prerequisite for every slider position.
 
-**Minimum requested outputs, subject to feasibility and disclosure controls**
+**Initial distribution targets:** source-defined home-value bands with detail around 10m and 14m; wealth deciles 0–10%, 10–20%, …, 90–100%; a separate top-1% detail panel when data permit. Do not invent unavailable fine-resolution observations.
 
-- Home-value bands: below 2m, 2–4m, 4–6m, 6–8m, 8–10m, 10–12m, 12–14m, 14–16m, 16–20m, 20–30m, 30–40m, and 40m+; finer bins near policy thresholds if feasible.
-- Separate counts of properties, owner households, and affected taxpayers where available, with ownership-share definitions.
-- Conditional distributions of household economic net wealth, gross/disposable income, liquid assets, debt, and taxable net wealth within housing-value bands.
-- Taxpayer counts and total liability under a specified baseline and named alternatives, preferably by baseline net-wealth decile, income group, age/household type, and broad region.
-- For isolating the valuation-model change: paired old/new valuations on a comparable underlying population, or official matched scenario outputs. A uniform percentage uplift is not an adequate substitute.
+**Deliverable:** compact open-data distributions, a source/assumption sheet, and a first estimated weighting approach with low/base/high sensitivity variants.
 
-Do not ask for every dimension in one enormous cross-tab. Begin nationally, then request separate income, wealth, age, and regional breakdowns. Tail suppression and cost are likely constraints. Means within housing bands are useful descriptions but **not sufficient inputs for exact nonlinear tax calculations**.
+### D. Wealth composition by decile — new core research question
 
-**Draft initial request, not sent:**
+The requested question is: **“Where is the wealth held at different points in the wealth distribution?”** Rank households by baseline **economic net wealth**, not by house price or income.
 
-> Vi utvikler et offentlig tilgjengelig visualiseringsverktøy om primærbolig og formuesskatt. Vi ønsker først å avklare hvilke eksisterende, anonyme tabeller som kan gjenbrukes, før vi eventuelt bestiller et tabelloppdrag.
->
-> Finnes tallgrunnlaget bak fordelingen av primærboliger etter beregnet markedsverdi i Finansdepartementets presentasjon 27. februar 2026, og fordelingsberegninger for å heve verdsettingsgrensen fra 10 til 14 millioner kroner? Vi er særlig interessert i antall berørte, proveny og fordeling etter beregnet nettoformue, inntekt, alder og husholdningstype. Beregningene i svaret på skriftlig spørsmål 1404 (2025–2026), om 10 til 20 millioner, er et relevant utgangspunkt.
->
-> Kan dere opplyse om populasjon, enhet (bolig/person/husholdning), verdsettingsår/-modell, sammenligningsgrunnlag, avrunding/usikkerhet og vilkår for viderepublisering? Dersom eksisterende tabeller ikke er tilstrekkelige, ønsker vi en uforpliktende avklaring av mulige anonyme krysstabeller og et pristilbud før eventuell bestilling.
+Target components: primary-home value, other property/real assets, bank deposits, shares/funds/other financial assets, and debt. Use mutually exclusive categories to avoid counting financial assets or real estate twice.
 
-**Access boundary:** public Statbank tables are not downloadable linked tax returns. SSB microdata access is restricted to eligible organisations/purposes, and microdata.no requires an institutional agreement; underlying records stay on its platform. A public browser app must never contain confidential records or credentials. A collaboration could produce approved aggregates, but access and publication rights cannot be assumed. [S12, S13]
+- First plot: average kroner per household in each decile, with assets stacked above zero, debt below zero, and net wealth marked separately.
+- Companion plot: housing and other asset shares of **gross assets**. Avoid dividing by zero/negative net wealth, which produces misleading percentages.
+- Negative net wealth in lower deciles is possible and supported by SSB; it does **not** mean the house itself has negative value. Show housing equity only when mortgage-specific debt is available or an allocation assumption is explicitly labelled. Total household debt includes more than mortgages.
+- Show top 1% (optionally top 0.1%) as a nested detail, not an extra disjoint group added to the ten deciles. An alternative non-overlapping upper split is 90–99% and 99–100%, if sufficient data support it.
+- Distinguish the ratio of group-total housing to group-total assets from the average household housing share; the former is readily obtainable from compatible component means but is not the latter.
+- Clicking a decile can highlight it and optionally load a **stylised group profile** into the playground. A profile assembled from means is not an actual or necessarily typical household.
 
-**Deliverable:** data-request specification, inventory of existing tables, access/cost assessment, and recommendation to proceed or stop.
+**Verified open lead:** SSB's 19 February 2026 article [S17] says real capital, mainly housing, accounted for roughly two-thirds of aggregate gross wealth in 2024. It provides financial wealth by net-wealth decile (figure 2) and financial-asset composition by those deciles plus the top 1% and 0.1% (figure 3). Real capital is broader than housing. This is useful partial coverage; a full housing-and-debt decomposition for every decile has **not yet been verified**. Extract the public figure data next and continue the open-source search. If components remain unavailable, present the verified decomposition alongside clearly marked estimates or a coarser grouping—not a false claim of exact coverage.
 
 ## 5. Method: what can legitimately update when a slider moves?
 
@@ -216,9 +227,9 @@ Do not ask for every dimension in one enormous cross-tab. Begin nationally, then
 |---|---|---|
 | Observed / published reference | SSB wealth cutoffs and housing counts | Highlight the selected position; do not alter underlying observations |
 | Official scenario estimate | Published LOTTE-Skatt results for a defined reform | Display only for matching presets and label vintage/baseline |
-| Dashboard calculation/model | A specified household, or approved weighted population model | Recalculate within its documented supported scope |
+| Dashboard calculation/model | A specified household or open-data-informed weighted population approximation | Recalculate with documented assumptions and scope |
 
-A fixed official estimate must not appear to be a live calculation. On leaving a supported preset, show “national estimate unavailable for these settings” unless there is a validated population model.
+A fixed official estimate must not appear to be a live calculation. Custom settings should use the dashboard's public-data-based estimate where implemented, labelled **illustrative** or **modelled estimate** and accompanied by assumptions. Show unavailable only for genuinely unsupported dimensions/ranges; do not disable the core sandbox merely because no official estimate exists for that exact setting.
 
 ### 5.2 Household calculation: economic wealth and tax wealth are separate
 
@@ -245,10 +256,31 @@ For the upper band, distinguish net taxable wealth before the allowance from the
 
 Above NOK 14 million, raising the threshold from 10 to 14 million lowers the property's taxable value by NOK 1.8 million. Actual tax savings depend on ownership, allowances, debt, and tax bands; they are not automatically NOK 18,000 for every owner.
 
+### 5.2a Make the interacting thresholds visible across the whole curve
+
+For the simplified example, also plot **Z(V) = F(V) + other taxable assets − deductible debt − allowance**, before replacing negative values with zero for the tax calculation.
+
+- The housing threshold **L** is where the valuation slope changes.
+- The tax-onset value **V₀** is where Z(V) first becomes positive. It depends on debt, other assets, the allowance and the selected rules; it is not generally equal to L.
+- Mark L and V₀ separately and label coincident markers when they meet. Show any upper wealth-tax transition separately too. If tax is already due at zero home value or never becomes due in the displayed range, say so instead of inventing a crossing.
+- Above the onset, at a 1% wealth-tax rate, including 25% of an extra NOK 1 million adds NOK 2,500 of annual tax; including 70% adds NOK 7,000. These local slopes apply only within the corresponding active bands.
+- Crossing the housing threshold creates a **kink, not a jump** in the bill. When the allowance is exhausted near that kink, the transition from zero tax to rapid growth is especially informative.
+
+**Demonstration preset:** single full owner; no other assets; NOK 1.6m debt; NOK 1.9m allowance; 14m housing threshold; 25%/70% valuation. Both markers meet at 14m. Annual tax is zero at 14m, NOK 700 at 14.1m, NOK 7,000 at 15m, and NOK 14,000 at 16m under the standard 1% band. Moving the debt, other-assets or allowance controls shifts the onset; moving the housing threshold changes where the slope steepens. Keep the full curve visible throughout.
+
+### 5.2b Include income without confusing a flow with wealth
+
+Add an annual-income control, optionally initialised from a clearly sourced mean/median for a named population. It is part of the combined playground, not a substitute for the other-assets control.
+
+- Income by itself does not enter the basic wealth-tax base; unspent income becomes wealth only through a separately specified saving assumption.
+- With assets and debt fixed, the income slider changes **wealth tax as a percentage of income**, not the kroner wealth-tax curve. Label gross versus disposable income explicitly and handle zero income without division errors.
+- A second plot can show that burden ratio across all house values. This makes a salary/average-income slider useful while preserving correct tax mechanics.
+- If a later scope decision adds income tax or accumulation over time, use a separate model. Do not silently build either into this wealth-tax extension.
+
 ### 5.3 Dynamic wealth context
 
 - Household assets/debt controls update economic net wealth and its published bracket.
-- A home-value histogram, if obtained, updates the property's highlighted bin and share above the selected value; disclose within-bin uncertainty.
+- The public-data or estimated home-value histogram updates the selected bin, the shaded valuation tiers, and the counts/shares on each side of movable thresholds; disclose within-bin uncertainty.
 - Policy sliders update tax liabilities and affected groups, **not pre-tax wealth ranks** in a static model.
 - Switching the peer group changes the reference population visibly. Do not claim age- or municipality-specific percentiles from tables that publish only group means.
 - If only broad bins exist, show a bracket or bound. Interpolation is a modelling assumption and must not masquerade as observed precision.
@@ -266,15 +298,18 @@ Tax on an average portfolio is generally not average tax on the population: allo
 
 Keep ranks fixed at baseline when reporting who benefits, so a policy does not change the classification used to evaluate it. Distinguish all households, homeowners, wealth-tax payers, and beneficiaries as denominators.
 
-**Preferred population approaches, in order:**
+**Use a practical open-data modelling ladder, not a microdata prerequisite:**
 
-1. Published/commissioned official scenario outputs for a finite policy menu.
-2. Approved detailed grouped distributions or anonymous representative records with documented weights, sufficient for the allowed changes.
-3. An explicitly synthetic population calibrated to joint aggregates and multiple official reform benchmarks, with sensitivity ranges.
+1. **Property exposure:** integrate the published/estimated housing-value distribution to count homes in each valuation tier and the region between old/new thresholds. This needs no assumptions about owners' other assets, but it measures homes, not people who actually pay tax.
+2. **Distribution-weighted illustration:** apply the selected household balance-sheet assumptions across that housing distribution. Show an illustrative aggregate tax change under those assumptions. Make explicit if it assumes one full-owner tax unit per home; do not relabel it as actual Norwegian receipts or use household weights on property bins without an ownership mapping.
+3. **Estimated national scenario:** replace the single balance sheet with a compact weighted mix of household/tax-unit profiles informed by open wealth, debt, ownership and household-type statistics. Document the mapping from properties to owners/tax units, missing correlations, and within-group assumptions. Use a few profiles per group or integration points rather than tax on a single group mean where possible.
+4. **Official benchmark:** show comparable published reform results beside the model to check scale and explain differences. These are not the only permitted slider positions.
 
-A synthetic model is a last-resort exploratory tool, not “SSB data.” Its uncertainty should include alternative debt/asset correlations and expensive-tail shapes. Sensitivity ranges are not statistical confidence intervals unless derived as such.
+This approach allows immediate exploration without claiming to reproduce tax records. Start with simple, inspectable assumptions and improve them as open sources permit. A synthetic/grouped model is an acceptable intended tool, labelled as a **dashboard estimate informed by SSB**, not as observed SSB microdata.
 
-A restricted scenario grid can be precomputed and packaged for the browser. If interpolation is later allowed, validate it around the nonlinear thresholds and show it as approximate; do not extrapolate beyond its support.
+Vary debt/asset relationships, within-bin distributions and expensive-tail assumptions to produce low/base/high scenarios. These are sensitivity ranges, not statistical confidence intervals. Round totals to the precision the inputs justify. If estimates are unstable, still show the robust exposure counts and explain the range rather than presenting a precise headline.
+
+Custom slider recalculation is the goal. A precomputed grid is an optional performance technique, not a replacement for the interactive sandbox; validate interpolation near thresholds and identify unsupported extrapolation.
 
 ### 5.5 Baselines and interpretation
 
@@ -291,50 +326,64 @@ Initially exclude behavioural effects such as moving, changing debt, portfolio s
 
 Do not mix municipal **eiendomsskatt** into wealth-tax receipts. The revised valuation model may affect it later; the May proposition discusses possible 2028 effects, which are a separate tax and scenario. [S4]
 
-## 6. Proposed dashboard structure
+## 6. Proposed dashboard structure: one coordinated playground
 
-### View 1 — “Hva endret seg?”
+Use several plots in the existing app, sharing controls and highlighting. Focused explanation sections are useful, but **a combined view is required**: the user must be able to see how housing, other wealth, debt, the allowance, and income context interact without switching among separate apps or disconnected calculators.
 
-- Short, source-backed timeline with old valuation model, revised model, allowance change, and threshold change.
-- Side-by-side interpretation of market-value estimate, taxable valuation, and final tax.
-- Show “25% included = 75% discount” together; avoid the current ambiguous “Sats %.”
-- Explain that a model revaluation is not necessarily a sudden increase in real economic wealth.
+### Main view — “Utforsk samspillet”
 
-### View 2 — “Hvor vanlig er denne formuen?”
+Keep shared controls visible next to or above an aligned chart stack:
 
-- Selected home value with exact numeric entry; range supports 40 million and beyond as needed.
-- Ownership, debt, cash/financial assets, other assets, and assessment status.
-- Optional income/liquidity details rather than compulsory detailed financial disclosure.
-- Home-value histogram with selection, plus a separate household economic-net-wealth bracket.
-- Explicit national population, data year, and denominator labels.
-- Presets for comparisons, not unsourced claims of representative households: debt-free single pensioner, indebted working-age couple, and otherwise identical households with different liquid assets.
-- Browser-local personal inputs; do not save/share personal financial values by default.
+1. **Taxable home valuation versus home value:** baseline and custom full-range lines, labelled valuation tiers.
+2. **Tax base after debt and allowance, before the zero floor:** plot Z(V) from section 5.2a, including its negative region and zero line. This explains why taxable home value is not itself the bill.
+3. **Annual wealth tax versus home value:** baseline/custom lines, separate housing-tier and tax-onset markers, selected-household point, and exact breakpoint tooltips.
+4. **Norwegian home-value histogram underneath:** same home-value x-axis and aligned boundaries. Shade the range between the baseline and custom thresholds, show counts/shares within each tier, and retain the tail when zooming into ordinary values.
+5. **Policy difference curve:** annual kroner saved/paid at every home value, not only at the selected point. This can be a compact panel rather than another large chart.
 
-### View 3 — “Hvem får skatteendringen?”
+Start with the existing two curves plus histogram and annotations; add the other explanatory panels incrementally so the user can evaluate clarity. Compact panels/collapsible explanations are acceptable, but do not reduce the playground to a single number or hide all interactions in separate tabs.
 
-- Compare named scenarios, then expose a simple set of policy controls.
-- Bars for aggregate and average tax change by **baseline net-wealth group**; companion income view to expose low-income/high-wealth cases.
-- Beneficiary count, average/median relief where available, and share of relief going to top groups.
-- Display both relief per beneficiary and total relief, since they answer different questions.
-- Show household annual tax and policy difference beside the existing valuation/tax curves.
-- Fixed official evidence stays visibly separate from live custom calculations.
+Use separate vertically aligned plots instead of confusing independent tax/count scales on one y-axis. Shared hover/selection should connect the same home value across the panels. Moving a policy threshold changes the tax lines and histogram shading; it does **not** move the observed home values in a static simulation. A separate valuation-model or price scenario may change those values, clearly labelled.
 
-### View 4 — “Hva betyr det for offentlige inntekter?”
+**Counts require careful wording:** “homes above the valuation threshold” is directly distribution-based; “people now paying wealth tax” requires balance-sheet/tax-unit assumptions. If shading values above the selected profile's tax-onset point, label it “homes in the taxable range for this example profile,” not actual taxpayers.
 
-- Baseline, alternative, annual revenue difference, number affected, and estimation status.
-- For unsupported settings: unavailable national estimate rather than a spurious exact figure.
-- Static-model assumptions and uncertainty beside the result, not only in a hidden footnote.
-- Optional budget-scale comparison using same-year sourced recurring expenditure; never imply the revenue is earmarked or that salary alone equals service cost.
+### Supporting view — “Hvor ligger formuen?”
+
+- Wealth-decile component charts described in workstream D: average asset amounts above zero, debt below zero, net wealth marker, and optional gross-asset composition shares.
+- A separate top-1% detail so its different composition is not hidden in the top decile.
+- A selected household's net-wealth bracket alongside the source year and definition.
+- Highlight that housing can dominate ordinary balance sheets while financial assets are more concentrated toward the top; let the data determine the magnitude.
+- Optional decile-to-stylised-profile interaction with a clear reset, without claiming that means reconstruct an actual household.
+
+### Supporting view — “Inntekt og skattebelastning”
+
+- Annual income slider/number input with optional sourced average/median presets.
+- Wealth tax as a percentage of that income across the **whole home-value range**, or at least alongside the main curve's selected point.
+- Debt-free pensioner, indebted working-age couple and high-financial-wealth example profiles; these are demonstrations, not assertions about typical owners.
+- Explain that income changes burden ratios; wealth, debt and rules determine wealth tax. Accessible cash can add liquidity context without a full spending/affordability model.
+
+### Combined results — “Hvem påvirkes, og hva blir provenyet?”
+
+Keep a compact summary visible with the playground: selected annual bill/difference, homes in the changed range, household wealth bracket, and distribution-weighted estimated revenue difference with its evidence label.
+
+Provide detail panels for baseline-wealth-group/income-group tax changes where the open data/model support them. Distinguish aggregate relief, relief per beneficiary, and average change across everyone. Display official published estimates as references, not as live values for arbitrary settings.
+
+Sensitivity assumptions and low/base/high results should be accessible beside the national estimate. A deliberately simple common-profile illustration is a useful early stage; label it accordingly rather than pretending it is already a national forecast.
+
+### Brief context — “Hva endret seg?”
+
+Retain the source-backed timeline, the distinction between valuation-model and tax-rule changes, and the explanation “25% included = 75% discount.” This supports the playground rather than replacing it as the main experience.
 
 ### Controls and interaction rules
 
-**Basic mode:** housing threshold, lower/upper taxable fraction, personal allowance, with named 10m/14m presets and an explicitly historical 20m proposal. Defaults should copy the chosen baseline so the initial difference is zero.
+- **Household:** home-value marker, ownership/assessment status, debt, other assets, annual income, optional liquid assets.
+- **Policy:** housing thresholds, included valuation fractions, personal allowance, and tax rates; retain dynamic custom tiers. Sliders should have matching numeric inputs for exact examples.
+- **Population assumptions:** public-data year, distribution/interpolation choices, and debt/other-assets profile assumptions for weighted calculations. Keep these separately labelled from the personal controls.
+- Default custom rules can copy the baseline so the initial difference is zero; offer 10m/14m and historically labelled 20m comparison presets without restricting free exploration.
+- Holding the household's other assets/debt fixed along the line is intentional. In an explicitly selected **common-profile illustration**, use those controls for the weighted calculation too. In the estimated-national mode, personal sliders must not silently overwrite every household's finances.
+- A region filter changes the reference population visibly; distinguish it from a national policy change.
+- Use neutral colours for revenue gains/losses, accessible labels and keyboard controls, and a reset-to-baseline button. Keep personal inputs browser-local and exclude them from shared policy links by default.
 
-**Advanced mode:** custom valuation tiers, both tax bands, ownership/asset details, and modelling assumptions within validated limits.
-
-Keep personal assumptions separate from national policy: changing **my mortgage** must not assign that mortgage to every household in Norway. A geography filter changes the displayed population; it must be clear whether policy still applies nationally.
-
-Use neutral colours for revenue changes rather than automatically equating more tax with good and less tax with bad. Add direct labels, keyboard-usable controls, and a reset-to-baseline button. Share policy settings separately from personal financial inputs.
+**Later evaluation candidates, not separate apps to build now:** a marginal-tax/slope panel, a debt-versus-home-value heatmap, and a valuation-to-tax waterfall at the selected point. These may help but are optional; first evaluate the coordinated curves, histogram and composition charts.
 
 ## 7. Architecture and deployment implications — future implementation only
 
@@ -343,12 +392,12 @@ Retain **Marimo + Polars + Altair**. The important change is separating responsi
 1. **Source snapshots and metadata:** immutable public inputs, citations, versions, population definitions.
 2. **Legal policy definitions:** dated parameters and supported tax-unit rules.
 3. **Pure calculation functions:** household/tax-unit valuation and liabilities, independently testable.
-4. **Population/scenario layer:** weights and joint records if defensible, otherwise official finite scenario outputs.
+4. **Population/scenario layer:** open distributions and weighted representative profiles with explicit assumptions; published official scenarios as benchmarks.
 5. **Presentation layer:** controls, charts, explanatory text, evidence labels.
 
-This separation prevents a cosmetic UI edit from silently changing the legal baseline and lets the same tested calculation serve examples and any future population model.
+This separation prevents a cosmetic UI edit from silently changing the legal baseline and lets the same tested calculation serve the full curves, selected examples and distribution-weighted estimates. All plots should depend on the same scenario definitions rather than duplicating separate calculators.
 
-**WASM approach:** retrieve and validate data before export, then ship compact public aggregates/approved synthetic data as static same-origin assets. Do not depend on a live SSB request every time a slider moves. This improves reproducibility and avoids browser CORS/API-availability surprises. Keep confidential-data processing outside the public app entirely.
+**WASM approach:** retrieve and validate open data before export, then ship compact public aggregates/derived representative profiles as static same-origin assets. Do not depend on a live SSB request every time a slider moves. This improves reproducibility and avoids browser CORS/API-availability surprises. Restricted/confidential data processing is outside this project's scope entirely.
 
 Use small weighted representative datasets rather than millions of browser rows. Check asset copying/loading in the existing build, memory use, numerical agreement, and library availability in the actual exported runtime. No new heavy modelling dependency is justified yet.
 
@@ -358,38 +407,45 @@ Do not restart the running Marimo session, and do not use `@app.cell(hide_code=T
 
 ## 8. Delivery phases, decision gates, and validation
 
-### Phase 0 — Agree the analytical contract
+### Phase 0 — Preserve the agreed direction
 
-Decide audience/language, national versus personal entry point, primary-housing scope, comparison baseline, and whether scenario-only national estimates are acceptable initially.
+**Already decided:** open sources only; full-range curves remain central; one coordinated app with focused explanations and a combined playground; distribution-based estimates are acceptable; no implementation in this planning session.
 
-**Recommended defaults:** Norwegian public-facing explanatory dashboard; primary housing first; 10-versus-14-million isolated comparison; official presets for national effects; economic wealth and liquidity both visible; no paid data purchase yet.
+**Recommended defaults:** Norwegian public-facing app, primary-housing policy first, 10-versus-14-million comparison as an example rather than a restriction, and other assets/debt/income visible in the combined context.
 
-### Phase 1 — Evidence pack and data feasibility
+Remaining review concerns plot priority and complexity, not whether to replace the curves or seek private data.
 
-Complete workstreams A–C: source registry, legal audit, public-data extracts, official scenario tables, histogram request, and missing-data assessment.
+### Phase 1 — Open evidence and distribution inputs
 
-**Gate:** can available data support (a) household wealth brackets, (b) property rarity, (c) distribution of relief, and (d) arbitrary national recalculation? Answer each separately. Do not make the entire useful dashboard depend on obtaining microdata.
+Complete workstreams A–D: source registry, legal checks, public histogram extraction/reconstruction, wealth-component figure data, official reference estimates and a source/assumption inventory.
 
-### Phase 2 — Public-data MVP, after approval
+**Checkpoint:** identify which quantities are published, reconstructed, or modelled. Select a usable initial housing distribution and document the uncertain tail; identify the verified versus missing wealth-composition components. Do not block work waiting for unavailable individual records.
 
-Correct/date the baseline, add both tax bands or clearly restrict scope, introduce selected-household inputs, wealth brackets, a clear tax-difference display, and official fixed-scenario evidence.
+### Phase 2 — Curve-first extension, after implementation approval
 
-**Acceptance:** a reader can understand what changed, place a specified household in a defensible wealth bracket, and distinguish household calculations from published national estimates.
+Version/test the tax rules, preserve baseline/custom lines, add tax-onset and tier markers, introduce the aligned histogram and dynamic exposure counts, selected-home annotation and income-burden context. Add the decile composition chart using verified or explicitly estimated components.
 
-### Phase 3 — Conditional national simulator
+**Acceptance:** a user can move debt, other assets, allowance and valuation tiers and explain why the full tax curve shifts or steepens; see how many homes lie in the changed range; and inspect housing/financial wealth/debt across wealth groups. The selected point never replaces the line.
 
-Proceed only if data acquisition or transparent modelling can support the chosen controls. Narrow the policy menu when the evidence is narrow.
+### Phase 3 — Combined distribution-weighted estimates
 
-**Acceptance:** compare against multiple independent reference quantities—not merely force-fit one revenue headline—including taxpayer counts, wealth/debt totals, group effects, and official reform deltas using compatible vintages. Define acceptable discrepancies before calibration; report discrepancies and reject unsupported outputs.
+First connect the housing distribution to an explicitly common-profile illustration. Then improve it with a compact open-data-informed mix of balance sheets and tax units, keeping low/base/high assumptions visible. Keep the combined playground usable while components are developed and evaluated.
 
-### Phase 4 — Engagement, accessibility, and extensions
+**Acceptance:** calculations and weights are inspectable; uncertainty and evidence labels match the method; model aggregates are checked against available wealth/debt totals, counts and compatible official reform estimates without forcing an artificial exact match. Where correlations remain unknown, show sensitivity and avoid unsupported claims about precisely who benefits.
 
-Improve guided examples, shareable policy scenarios, charts, accessibility, and budget context. Consider secondary residences only after the primary-housing model is credible. Treat a municipal property-tax module as a separate project decision.
+### Phase 4 — Evaluate the plots and refine
+
+Have the user evaluate the coordinated plots in the same app before adding optional heatmaps, marginal-slope plots or more presets. Refine explanatory text, accessibility, performance and shared settings. Secondary-residence policy and municipal property tax remain separate scope decisions.
 
 ### Required future checks
 
 - Reproduce official worked examples, including no-tax cases. [S2]
-- Test values immediately below, exactly at, and above each housing and tax threshold; ensure continuous tiered valuation.
+- Test values immediately below, exactly at, and above each housing and tax threshold; ensure continuous tiered valuation and no fictitious tax jump at 14m.
+- Verify separate tax-onset and valuation-tier markers, including the worked 1.6m-debt example and cases where the markers differ.
+- Changing income alone must leave the kroner wealth-tax curve unchanged while updating its income ratio; handle zero income.
+- Ensure the tax lines and histogram share the same x-axis and that policy-only changes leave underlying home values fixed.
+- Histogram counts must sum consistently; label interpolated counts and unknown-tail assumptions, and distinguish properties from taxpayers.
+- Wealth-composition charts must keep debt negative, asset values nonnegative, categories non-overlapping and top-1% detail separate from additive decile totals.
 - Test ownership shares, jointly assessed couples versus cohabitants, zero/large debt, mixed assets, and no debt double-counting.
 - Baseline compared with itself gives zero difference; aggregation is consistent with individual results.
 - For a fixed, supported household model, reducing an included valuation fraction must not increase liability.
@@ -412,44 +468,48 @@ All sources below were opened/read during this initial review; Statbank inventor
 - **S8 — SSB, Hva er vanlig formue?, corrected 12 February 2026:** https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/artikler/hva-er-vanlig-formue
 - **S9 — Representantforslag 94 S (2025–2026), dated 27 January 2026:** https://www.stortinget.no/no/Saker-og-publikasjoner/Publikasjoner/Representantforslag/2025-2026/dok8-202526-094s/?all=true
 - **S10 — SSB PxWebApi v2 documentation overview:** https://www.ssb.no/api/pxwebapi
-- **S11 — SSB commissioned tables, public availability and pricing:** https://www.ssb.no/data-til-forskning/tabelloppdrag
-- **S12 — SSB microdata eligibility:** https://www.ssb.no/data-til-forskning/utlan-av-data-til-forskere
-- **S13 — microdata.no institutional access and anonymising interface:** https://www.microdata.no/om-microdata-no/
 - **S14 — Skatteetaten debt allocation and valuation discounts:** https://www.skatteetaten.no/person/skatt/hjelp-til-riktig-skatt/verdsettingsrabatt-ved-fastsetting-av-formue/ (worked example/historical discount table; verify target-year law before implementation).
 - **S15 — SSB explanation of revised geographical valuation model, 1 December 2025:** https://www.ssb.no/priser-og-prisindekser/boligpriser-og-boligprisindekser/artikler/revidert-modell-for-beregning-av-formuesverdi-for-bolig
 - **S16 — SSB LOTTE-Skatt overview:** https://www.ssb.no/forskning/offentlig-okonomi/inntektsfordeling/lotte-skatt (older background documentation; current scenario documents take precedence for sample/base-year details).
+- **S17 — SSB, Vekst i husholdningenes finansformue i 2024, 19 February 2026, especially figures 2–3:** https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/statistikk/inntekts-og-formuesstatistikk-for-husholdninger/artikler/vekst-i-husholdningenes-finansformue-i-2024 (article read during plan revision; extracting its public chart series is pending).
+
+Source IDs S11–S13 from the first draft concerned commissioned/restricted data routes; they were removed to reflect the open-data-only decision. Remaining IDs are preserved so citations stay stable.
 
 **Source trap:** SSB's report *Modell for beregning av boligformue*, published 27 February 2026 as Notater 2026/10, explicitly covers 2025 values and says a separate revised-model note will follow. Do not cite its accuracy statistics as if they validate the new 2026 model: https://www.ssb.no/priser-og-prisindekser/boligpriser-og-boligprisindekser/artikler/modell-for-beregning-av-boligformue-27022026
 
 ## 10. Progress tracker
 
-### Completed in this planning session
+### Completed research and planning
 
-- [x] Read the existing app and relevant earlier plans; identified unsupported macro assumptions.
+- [x] Read the existing app and relevant earlier plans; documented the foundations to retain and modelling assumptions to source.
 - [x] Read relevant Marimo/WASM guidance; made no app or dependency changes.
 - [x] Verified the 10-to-14-million threshold and 25%/70% included fractions against official sources.
 - [x] Located and read official valuation-model, fiscal, and distributional analyses.
-- [x] Found the published primary-home histogram and identified its underlying data as a high-priority request.
+- [x] Found the published primary-home histogram for open-data extraction or approximation.
 - [x] Checked candidate SSB table dimensions and extracted actual 2024 wealth-group cutoffs.
 - [x] Identified estimation-vintage conflicts and person/household/property distinctions.
-- [x] Drafted staged research, data-access, methodology, UX, and validation plans.
+- [x] Revised the plan to preserve the full-range curves and make their threshold interactions central.
+- [x] Removed all outreach, paid/commissioned-data and restricted-data routes, including the draft request.
+- [x] Added coordinated curves/histogram, combined controls, income context and wealth-composition requirements.
+- [x] Read the open SSB financial-wealth-by-decile article; full housing/debt composition remains to be established.
+- [x] Reframed distribution-weighted approximations as an intended approach, with official estimates as benchmarks rather than preset-only restrictions.
 
-### Pending discussion / research
+### Pending discussion / open research
 
-- [ ] User review and prioritisation; no implementation approved.
-- [ ] Confirm enacted-law references, dates, co-ownership rules, and municipal exceptions.
-- [ ] Save reproducible source/data snapshots and complete the claims ledger.
+- [ ] User review of the revised plan; no implementation approved in this session.
+- [ ] Confirm enacted-law references, dates, co-ownership rules, and municipal exceptions from published sources.
+- [ ] Save reproducible public-source snapshots and complete the claims ledger.
 - [ ] Reconcile February versus May threshold-revenue estimates and comparison baselines.
-- [ ] Search for existing 14-million distribution tables and obtain histogram raw numbers.
-- [ ] Decide whether to send the draft data request; nothing has been sent or ordered.
-- [ ] Assess need, cost, and eligibility for any commissioned aggregates/research collaboration.
-- [ ] Choose official-presets-only versus a justified wider national simulator.
-- [ ] Agree the MVP, unsupported-case behaviour, and acceptance criteria.
+- [ ] Extract/reconstruct public housing-histogram bins and document interpolation/tail assumptions.
+- [ ] Extract S17 financial-wealth chart data and search open sources for matching housing/debt components by wealth decile.
+- [ ] Select initial weighted profiles and low/base/high population assumptions using open data only.
+- [ ] Agree the first plot set and order of incremental user evaluation in the same app.
 
-### Implementation — not started
+### Implementation — for a later agent after approval
 
-- [ ] Correct/version and test the tax engine and scenario baselines.
-- [ ] Add selected-household context, wealth brackets, and official scenario displays.
-- [ ] Add national recalculation only if the evidence gate is satisfied.
-- [ ] Rework UI and explanatory views.
+- [ ] Version and test the tax engine, including distinct tier and tax-onset thresholds.
+- [ ] Preserve and enhance the full curves; align a population histogram and exposure counts underneath.
+- [ ] Add other-asset/debt/income controls, wealth brackets and wealth-composition context in the combined view.
+- [ ] Add distribution-weighted illustrative calculations, then refine national estimates with representative profiles and sensitivity.
+- [ ] Evaluate optional extra plots only after the core coordinated set is usable.
 - [ ] Run code checks, WASM export, and browser validation after implementation.
