@@ -38,7 +38,7 @@ The additional net-balance chart joins SSB 10318 mean net wealth with article fi
 
 ### Policy scope
 
-One full-owner tax unit, primary home, undiscounted other assets and fully deductible debt. Joint assessment doubles the allowance and upper wealth-tax threshold, not the property's valuation threshold. It does not cover ordinary cohabitants as a single unit, partial ownership, discounted shares/debt allocation, municipal exceptions, or municipal property tax. The reference is explicitly based on the published rate page; legal adoption history remains a research task. Input income is gross annual income and affects only burden ratios, never the wealth-tax base.
+One full-owner tax unit, primary home, undiscounted other assets and fully deductible debt. Joint assessment doubles the allowance and upper wealth-tax threshold, not the property's valuation threshold. It does not cover ordinary cohabitants as a single unit, partial ownership, discounted shares/debt allocation, municipal exceptions, or municipal property tax. The app reference still cites the published rate page. The separate [legal audit](legal_audit_2026.md) now verifies the housing threshold's enactment on 23 June 2026 with effect from income year 2026, plus ordinary ownership and joint-assessment principles; it does not extend calculator scope. Input income is gross annual income and affects only burden ratios, never the wealth-tax base.
 
 ## Distribution-weighted illustration
 
@@ -63,12 +63,18 @@ Claims ledger:
 | Housing presentation, slide 5 | −730m threshold contribution in a figure comparing with continuation of the 2025 system into 2026. No extra accrued/booked classification is inferred from this slide. |
 | Proposition, chapter 3, paragraphs 3–4 | −830m accrued in 2026 for 10→14m versus adopted budget; +550m updated model estimate versus assumptions behind adoption; combined package −280m accrued, with booked 2026 effect estimated at zero. These are not three separate threshold reforms. |
 
-February's −730m and May's −830m remain unreconciled, separately dated estimates. The live app instead compares arbitrary settings against a 14m reference, so choosing 10m reverses the official relief direction. Reversing a sign does not make its property/common-profile population compatible with an official national model. No calibration, attribution of income to individual homeowners, or enacted-law claim is made.
+February's −730m and May's −830m remain unreconciled, separately dated estimates. The live app instead compares arbitrary settings against a 14m reference, so choosing 10m reverses the official relief direction. Reversing a sign does not make its property/common-profile population compatible with an official national model. The app's official-scenario section makes no calibration, attribution of income to individual homeowners, or enacted-law claim; the separate legal audit below now establishes the housing amendment's adoption.
+
+## Legal evidence audit
+
+[Legal audit and claims ledger](legal_audit_2026.md) records the adoption timeline, statutory housing rule, joint-assessment exceptions, ordinary co-ownership allocation, municipal-rate ceiling and mixed-asset debt limitations. `2026-09-20-legal/` archives nine sources with URL/date/hash metadata; the large handbook HTML is losslessly gzip-compressed with both stored and uncompressed hashes. The older handbook still uses 10m examples: its allocation guidance is not used as evidence for the current threshold. The enacted 14m rule is independently verified against the promulgated amendment and consolidated statute. No calculator or app-source changes were made by this audit.
+
+Municipality-specific 2026 decisions, the annual parliamentary tax-resolution archive and special legal cases remain open. Human scope/visual review is deferred to the plan's final review gate.
 
 ## Remaining data gaps
 
 - Housing tail beyond 30m and explicit original bin-edge definitions.
 - Housing, financial assets and debt jointly distributed across wealth groups.
 - Ownership/tax-unit mapping sufficient for a national receipts forecast.
-- Enacted-law timeline, municipal exceptions and full mixed-asset debt allocation.
+- Annual tax-resolution archive, municipality-specific 2026 exceptions, special legal cases and calculator support for mixed-asset debt allocation (core legal principles and housing enactment are now audited).
 - Reconciliation of February (730m) versus May (830m) official threshold estimates and their different reference vintages. These are not combined or used as a calibration target here.

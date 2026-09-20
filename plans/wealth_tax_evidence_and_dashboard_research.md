@@ -1,6 +1,6 @@
 # Research plan: Norwegian housing wealth, tax incidence, and public revenue
 
-**Status:** Implementation approved in the follow-up session; first working dashboard delivered for review. See the implementation record at the bottom. Earlier “plan only” wording records the original research-session scope.  
+**Status:** Core dashboard implemented. On 20 September 2026 the user requested autonomous work first and **all human review at the end**. The current authorised task is the legal evidence audit and this sequencing update; it does not silently authorise calculator changes or optional features. See the current execution order below and progress records at the bottom. Earlier “plan only” wording records the original research-session scope.  
 **Initial source review:** 20 September 2026.  
 **Target app:** `apps/building_taxation.py`.  
 **Scope:** Primary-residence wealth taxation first, within a combined household balance-sheet and income context. Secondary-residence policy and municipal property tax are separate extensions.  
@@ -29,7 +29,14 @@ The dashboard should test claims about “ordinary homeowners” with distributi
 - **Preserve the research already gathered.** Official scenario estimates and wealth cutoffs remain useful reference points and validation checks, not a restriction to preset-only interaction.
 - **Plan now, implement later.** This document is the handoff specification for a later agent; no charts, prototypes, or app code are being built in this session.
 
-**Recommended sequence:** extend the current curves and expose their mechanics; align them with a public-data housing distribution; add wealth-composition context and combined controls; develop clearly labelled distribution-weighted revenue estimates. Work incrementally so the user can evaluate the plots in the same app.
+**Current execution order — autonomous work before human review:**
+
+1. Audit the 2026 legal basis: enactment/effective dates, co-ownership, joint assessment, municipal-rate scope and debt-allocation exclusions. Archive evidence and identify calculator follow-ups separately.
+2. Investigate remaining open-data gaps: February/May estimate comparability, matching housing/debt components, and ownership/tax-unit mapping. Record bounded negative findings; do not invent national profiles or force reconciliation.
+3. Complete separately authorised, evidence-supported maintenance and automated QA. Technical checks of overflow, accessibility and performance can be automated without asking the user to inspect screens. Preserve full curves and aligned axes; defer preference-dependent layout changes and optional plots.
+4. **Final human-review gate:** consolidate the findings, outstanding modelling/scope decisions, plot order/density, desktop/mobile experience, baseline/custom control clarity, and optional features into one review. No intermediate human visual-review checkpoints. If a decision requires user preference, queue it here and continue independent authorised work instead of guessing.
+
+This sequencing change postpones review, not safety constraints or evidence requirements. New calculator scope still needs explicit authorisation; bookmarks, pushing and integration remain user-controlled.
 
 ## 2. Findings from the initial research
 
@@ -40,13 +47,13 @@ The dashboard should test claims about “ordinary homeowners” with distributi
 - SSB's revised housing model uses smaller geographical areas based on *grunnkretser*, rather than the previous municipality-based structure. SSB describes improved predictive accuracy, not perfect individual valuations. [S3, S15]
 - Higher estimated home values could increase **tax receipts**; this was not itself additional government spending. Raising the threshold reduces receipts relative to keeping the lower threshold.
 - Government stated that the model transition should not raise aggregate revenue. It increased the general wealth-tax allowance and subsequently proposed increasing the housing threshold. Revenue neutrality does not mean that every individual is unaffected. [S2, S4]
-- Skatteetaten's current 2026 rate page now lists the NOK 14 million threshold. Archive the enacted legal provision and effective date before implementing a legal preset; the February and May announcements were still proposals when published. [S1]
+- Skatteetaten's current 2026 rate page lists the NOK 14 million threshold. The follow-up legal audit verifies enactment by law 23 June 2026 no. 66, part II, effective immediately with effect from income year 2026 under part IV. The February and May announcements were proposals when published. See `data/wealth/legal_audit_2026.md` and its immutable legal snapshot. [S1]
 
 ### 2.2 Verified 2026 baseline for further legal checking
 
 | Component | Current published 2026 figure | Important qualification |
 |---|---:|---|
-| Primary-home threshold | NOK 14,000,000 | Whole-property valuation and ownership allocation must be checked explicitly |
+| Primary-home threshold | NOK 14,000,000 | Enacted for income year 2026; ordinary whole-property valuation/share allocation audited separately; special buildings remain excluded |
 | Taxable fraction below / above threshold | 25% / 70% | Apply progressively to portions of value |
 | Personal wealth-tax allowance | NOK 1,900,000 | Doubled for qualifying jointly assessed couples, not every household of two adults |
 | Standard combined wealth-tax rate | 1.0% | Published municipal rate 0.35% + state rate 0.65%; check municipal exceptions |
@@ -246,7 +253,7 @@ Calculate separately:
 - **Wealth-tax liability:** municipal and state schedules applied to the appropriate person/joint tax unit.
 - **Liquidity context:** accessible financial assets and annual tax relative to disposable income, if supplied; not a complete household affordability assessment.
 
-Ownership and tax-unit rules precede household aggregation. Do not split a whole property's threshold independently among owners without verifying the allocation rule. Ordinary cohabitants are not automatically treated like jointly assessed spouses.
+Ownership and tax-unit rules precede household aggregation. The follow-up legal audit confirms ordinary co-ownership uses whole-property valuation followed by ownership-share allocation, not an independent whole-property threshold for each owner. Special multi-unit cases remain outside scope. Ordinary cohabitants are not automatically treated like jointly assessed spouses.
 
 Primary-home debt does not generally receive the same reduction as debt allocated to discounted shares. The current simple debt subtraction is not a complete mixed-asset tax engine. Verify and test the statutory allocation rules; either support the required asset breakdown or explicitly restrict the simplified calculator. [S14]
 
@@ -340,7 +347,7 @@ Keep shared controls visible next to or above an aligned chart stack:
 4. **Norwegian home-value histogram underneath:** same home-value x-axis and aligned boundaries. Shade the range between the baseline and custom thresholds, show counts/shares within each tier, and retain the tail when zooming into ordinary values.
 5. **Policy difference curve:** annual kroner saved/paid at every home value, not only at the selected point. This can be a compact panel rather than another large chart.
 
-Start with the existing two curves plus histogram and annotations; add the other explanatory panels incrementally so the user can evaluate clarity. Compact panels/collapsible explanations are acceptable, but do not reduce the playground to a single number or hide all interactions in separate tabs.
+The core explanatory panels have now been implemented. Preserve them during autonomous checks; queue user evaluation of clarity for the final human-review gate. Compact panels/collapsible explanations are acceptable, but do not reduce the playground to a single number or hide all interactions in separate tabs.
 
 Use separate vertically aligned plots instead of confusing independent tax/count scales on one y-axis. Shared hover/selection should connect the same home value across the panels. Moving a policy threshold changes the tax lines and histogram shading; it does **not** move the observed home values in a static simulation. A separate valuation-model or price scenario may change those values, clearly labelled.
 
@@ -383,7 +390,7 @@ Retain the source-backed timeline, the distinction between valuation-model and t
 - A region filter changes the reference population visibly; distinguish it from a national policy change.
 - Use neutral colours for revenue gains/losses, accessible labels and keyboard controls, and a reset-to-baseline button. Keep personal inputs browser-local and exclude them from shared policy links by default.
 
-**Later evaluation candidates, not separate apps to build now:** a marginal-tax/slope panel, a debt-versus-home-value heatmap, and a valuation-to-tax waterfall at the selected point. These may help but are optional; first evaluate the coordinated curves, histogram and composition charts.
+**Final human-review candidates, not separate apps to build now:** a marginal-tax/slope panel, a debt-versus-home-value heatmap, and a valuation-to-tax waterfall at the selected point. Defer these optional additions until the final review of the coordinated curves, histogram and composition charts; they do not block autonomous evidence work.
 
 ## 7. Architecture and deployment implications — future implementation only
 
@@ -413,7 +420,7 @@ Do not restart the running Marimo session, and do not use `@app.cell(hide_code=T
 
 **Recommended defaults:** Norwegian public-facing app, primary-housing policy first, 10-versus-14-million comparison as an example rather than a restriction, and other assets/debt/income visible in the combined context.
 
-Remaining review concerns plot priority and complexity, not whether to replace the curves or seek private data.
+Remaining human review concerns plot priority and complexity, not whether to replace the curves or seek private data. Queue it at the final gate rather than making it a prerequisite for independent research and automated checks.
 
 ### Phase 1 — Open evidence and distribution inputs
 
@@ -435,7 +442,7 @@ First connect the housing distribution to an explicitly common-profile illustrat
 
 ### Phase 4 — Evaluate the plots and refine
 
-Have the user evaluate the coordinated plots in the same app before adding optional heatmaps, marginal-slope plots or more presets. Refine explanatory text, accessibility, performance and shared settings. Secondary-residence policy and municipal property tax remain separate scope decisions.
+First complete authorised independent research and automated technical evaluation. Collect, rather than interrupt work for, decisions about explanatory text, accessibility, performance, shared settings and layout preferences. Then hold one final user evaluation of the coordinated plots, desktop/mobile layout and controls, alongside the evidence limitations. Optional heatmaps, marginal-slope plots and additional presets stay deferred until that final review. Secondary-residence policy and municipal property tax remain separate scope decisions.
 
 ### Required future checks
 
@@ -497,13 +504,15 @@ Source IDs S11–S13 from the first draft concerned commissioned/restricted data
 ### Pending discussion / open research
 
 - [x] Follow-up user approval to implement incrementally, adapting measures to available open data.
-- [ ] Confirm enacted-law references, dates, co-ownership rules, and municipal exceptions from published sources.
-- [ ] Save reproducible public-source snapshots and complete the claims ledger.
+- [x] Audit enacted-law references and dates, ordinary co-ownership guidance, joint-assessment rules and the statutory municipal-rate ceiling; archive findings in `data/wealth/legal_audit_2026.md`.
+- [ ] Complete remaining legal detail: annual tax-resolution archive, municipality-specific 2026 decisions, and special property/taxpayer cases. Do not represent these as supported calculator features.
+- [x] Save reproducible snapshots and claims ledgers for the implemented public references, official scenarios and legal audit.
+- [ ] Extend those ledgers as remaining evidence gaps are investigated; do not imply all planned sources have been verified.
 - [ ] Reconcile February versus May threshold-revenue estimates and comparison baselines.
 - [x] Reconstruct public housing-figure bins from PDF vectors; document interpolation, assumed bin boundaries and unknown tail.
 - [x] Extract S17 financial-wealth chart data; display verified financial composition. Matching housing/debt components remain an open extension.
 - [ ] Select initial weighted profiles and low/base/high population assumptions using open data only.
-- [ ] Agree the first plot set and order of incremental user evaluation in the same app.
+- [ ] Final human review only: evaluate the implemented plot set/order, density, mobile/desktop layout, controls and queued scope decisions together after autonomous work.
 
 ### Implementation — for a later agent after approval
 
@@ -512,7 +521,7 @@ Source IDs S11–S13 from the first draft concerned commissioned/restricted data
 - [x] Add asset/debt/income controls, wealth brackets and verified financial-composition context in the same app.
 - [x] Add distribution-weighted common-profile illustration with debt, tail and within-bin sensitivity.
 - [ ] Refine national estimates with evidence-backed representative profiles and ownership mapping.
-- [ ] Evaluate optional extra plots only after user review of the core coordinated set.
+- [ ] At the final human-review gate, decide whether any optional extra plots are useful; do not add them to keep autonomous work busy.
 - [x] Run Ruff, Marimo checks, unit tests, WASM export and actual browser interaction checks.
 
 ### Implementation record — 20 September 2026
@@ -532,4 +541,16 @@ Four reviewable `feat - wealth lab` JJ changes, without moving bookmarks or inte
 
 **Sixth substep completed — dated official context:** directly rechecked and archived S4 chapter 3, its index confirming 12 May / corrected 11 June 2026, and S6 question 1404 in `data/wealth/2026-09-20-official/`, with URLs and SHA-256 manifest. A static linked section beside the population illustration distinguishes the February −730m, May −830m, and 10→20m −1,250m estimates, their baselines, and accrued versus booked amounts. It separately explains May's +550m revision and −280m package, and S6's 114,600 people / 11,000 NOK average relief / 1.72m gross income among beneficiaries. No person-to-household decile join, national calibration, or enacted-law claim is made. Static Markdown intentionally adds no runtime dependency, network fetch or policy-control dependency. February/May reconciliation remains open. The source README now contains a claims ledger. All 18 unit tests, Ruff, Marimo checks, existing generated-reference verification, full three-notebook WASM build and Chrome interaction checks passed; browser checks additionally confirm the official table is unchanged through 14m→10m→14m.
 
-**Next review / known limits:** evaluate chart density, responsive layout and control clarity; add shared hover and richer tier highlighting if useful. Housing presets reset housing tiers only, not all custom tax controls. Still open: complete legal adoption/ownership rules, municipal exceptions, discounted-asset debt allocation, official-scenario comparison reconciliation, matching housing/debt composition, population ownership mapping and credible national-profile modelling. No behavioural effects, property tax, precise household percentiles, or inferred income of expensive-home owners are claimed.
+**Final review / known limits:** chart density, responsive layout, control clarity, shared hover and richer tier highlighting are queued for the final human-review gate, not an immediate user task. Housing presets reset housing tiers only, not all custom tax controls. Legal enactment and ordinary ownership/assessment principles are now documented by the audit below; municipality-specific rates, special legal cases, calculator support for discounted-asset debt allocation, official-scenario reconciliation, matching housing/debt composition, population ownership mapping and credible national-profile modelling remain open. No behavioural effects, property tax, precise household percentiles, or inferred income of expensive-home owners are claimed.
+
+### Legal audit and review sequencing — 20 September 2026
+
+- [x] Move all human visual/preference/scope review to the final gate; independent evidence work and automated checks no longer depend on intermediate user inspection.
+- [x] Verify housing-rule enactment: Lovvedtak 92, first/second consideration 15/18 June, sanctioned as law 23 June 2026 no. 66; part II takes effect immediately with effect from income year 2026 under part IV.
+- [x] Archive nine primary/legal-guidance sources in `data/wealth/2026-09-20-legal/` with hashes. Document legal parameters, source-vintage distinctions and exclusions in `data/wealth/legal_audit_2026.md`; extend the source README's claims ledger.
+- [x] Verify qualifying joint-assessment principles and exceptions; document whole-property valuation followed by ownership allocation, municipal-rate ceiling and mixed-asset debt rules.
+- [x] Retain explicit gaps: municipality-specific decisions, annual tax-resolution archive and special legal cases. The current handbook still uses 10m examples; use it for allocation guidance, not the enacted 2026 threshold.
+- [x] Keep calculator numbers/code unchanged. Any app provenance/eligibility clarification or ownership extension is a separate task, not an implicit consequence of the audit.
+- [x] Verify new snapshot hashes/legal markers and derived ownership arithmetic; rerun the 18 existing unit tests and generated-reference check. Documentation-only change; no Marimo restart or new browser/WASM export.
+
+**Next independent plan task:** investigate whether open sources explain the February/May official-estimate difference, beginning with the original source baselines and model vintages. If no reconciliation is published, produce a bounded evidence-gap record rather than forced arithmetic. Matching housing/debt composition and ownership mapping remain the subsequent data-feasibility questions. Human dashboard evaluation stays at the end.

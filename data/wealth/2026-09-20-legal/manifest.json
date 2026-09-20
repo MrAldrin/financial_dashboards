@@ -1,0 +1,53 @@
+{
+  "retrieved": "2026-09-20",
+  "sources": [
+    {
+      "file": "rates.html",
+      "url": "https://www.skatteetaten.no/satser/formuesskatt/",
+      "sha256": "5f07ed8b2b501e39dc7dd3169eed6cb3af4725af55a2a231498ba8ef8a86b863"
+    },
+    {
+      "file": "housing.html",
+      "url": "https://www.skatteetaten.no/person/skatt/hjelp-til-riktig-skatt/bolig-og-eiendeler/bolig-eiendom-tomt/formuesverdi/formuesverdi-bolig/",
+      "sha256": "166b2f68e3d05cc858c7b994e0b46ac8a23986d286ea70e51dc56a3a2ba60d36"
+    },
+    {
+      "file": "law-housing.html",
+      "url": "https://lovdata.no/dokument/NL/lov/1999-03-26-14/\u00a74-10",
+      "sha256": "1ccc2417e8e7e8bd27d0a0ee7b199fadf34254ef4ef829475ebbd6b9ffda6b34"
+    },
+    {
+      "file": "law-joint.html",
+      "url": "https://lovdata.no/dokument/NL/lov/1999-03-26-14/\u00a72-10",
+      "sha256": "6d42f6227d2a344db3c5b4d39a8050c5951c26492cac297908bd8728131c12cd"
+    },
+    {
+      "file": "law-municipal.html",
+      "url": "https://lovdata.no/dokument/NL/lov/1999-03-26-14/\u00a715-3",
+      "sha256": "41a52c8dbc8604a362330e8761b3cdd2c35a95de7ed638b7c834198a308133f8"
+    },
+    {
+      "file": "case.html",
+      "url": "https://www.stortinget.no/no/Saker-og-publikasjoner/Saker/Sak/?p=200312",
+      "sha256": "f634648ee84fef45e3bb0cada849607ec937e681046f206df11a018f10fcb9e8"
+    },
+    {
+      "file": "adoption.html",
+      "url": "https://www.stortinget.no/no/Saker-og-publikasjoner/Vedtak/Beslutninger/Lovvedtak/2025-2026/vedtak-202526-092/",
+      "sha256": "038602f4eb26743f7f4f72dfdb0b6a6de09bed2c85d874a26ff7374fc491c36c"
+    },
+    {
+      "file": "amendment.html",
+      "url": "https://lovdata.no/lov/2026-06-23-66",
+      "sha256": "52e6ab4fe76f2c1ac801855a7e33a99abe84d236f8d3214c282ff40880aaf948"
+    },
+    {
+      "file": "abc-calculation.html.gz",
+      "url": "https://www.skatteetaten.no/rettskilder/type/handboker/skatte-abc/gjeldende/b-11-bolig--formue/B-11.002/B-11.012/",
+      "sha256": "55e113fe42f2b040622d1f8ec866d2455ad87ca8b852494f45505fc26a80c5c3",
+      "encoding": "gzip",
+      "uncompressed_sha256": "d2e164f1ada07b7a0c9617386d36903fc79c89dc6918bec66f22a62a93aceba1",
+      "note": "Full raw HTML, losslessly compressed; handbook edition 2025/2026 still uses the old 10m threshold."
+    }
+  ]
+}
