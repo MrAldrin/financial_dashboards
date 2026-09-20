@@ -1,6 +1,8 @@
-"""Run with uv run python -m unittest discover -s local_testing -p 'test_wealth*.py'."""
+"""Run with uv run python -m unittest discover -s tests."""
 
 import unittest
+
+import polars as pl
 
 from apps.building_taxation import calculate_wealth_tax_df, home_value_at_tax_wealth
 
@@ -22,12 +24,19 @@ def example(value: float, **changes: object) -> dict:
     options.update(changes)
     return (
         calculate_wealth_tax_df(**options)
-        .filter(__import__("polars").col("market_value") == value)
+        .filter(pl.col("market_value") == value)
         .row(0, named=True)
     )
 
 
 class WealthMechanicsTests(unittest.TestCase):
+    def test_app_default_curves(self) -> None:
+        from apps.building_taxation import app
+
+        _, definitions = app.run()
+        self.assertTrue((definitions["difference_df"]["difference"] == 0).all())
+        definitions["coordinated_curves"].to_dict(validate=True)
+
     def test_worked_threshold_comparison(self) -> None:
         old = [{"limit": 10_000_000, "rate": 25}, {"limit": None, "rate": 70}]
         self.assertEqual(example(12_000_000, tiers=old)["tax"], 20_000)

@@ -17,41 +17,92 @@ with app.setup:
 @app.cell
 def _():
     mo.md("""
-    # Norsk formueskattkalkulator
-    *En interaktiv politisk sandkasse med fokus på verdivurdering av eiendom.*
+    # Bolig, formue og skatt — utforsk samspillet
+    **Modellberegning, ikke en skattemelding.** Hele primærboligen eies av én
+    skatteenhet (én person eller kvalifisert fellesfastsetting). Andre eiendeler
+    er bankinnskudd / eiendeler uten verdsettingsrabatt. Gjeld trekkes fra én gang.
+    Aksjer med rabatt, delt eierskap og kommunale særregler er ikke modellert.
+
+    Referanse: publiserte [2026-satser fra Skatteetaten](https://www.skatteetaten.no/satser/formuesskatt/),
+    14 mill. boliggrense, 25/70 % verdsettelse, 1,9 mill. fradrag,
+    1/1,1 % skatt og øvre innslag 21,5 mill. Dette er ikke en full juridisk regelmotor.
     """)
     return
 
 
 @app.cell
 def _():
-    is_couple = mo.ui.switch(label="Ektepar (Dobbelt bunnfradrag)?")
-    mortgage_debt = mo.ui.number(label="Gjeld (NOK)", value=3000000, step=100000)
-    other_net_wealth = mo.ui.number(
-        label="Annen nettoformue (NOK)", value=500000, step=100000
+    is_couple = mo.ui.switch(
+        label="Fellesfastsetting (doble personlige innslag, ikke boliggrensen)"
     )
-    return is_couple, mortgage_debt, other_net_wealth
+    mortgage_debt = mo.ui.number(
+        label="Samlet gjeld (NOK)", start=0, value=1_600_000, step=100_000
+    )
+    other_net_wealth = mo.ui.number(
+        label="Andre eiendeler uten rabatt, før gjeld (NOK)",
+        start=0,
+        value=0,
+        step=100_000,
+    )
+    selected_home = mo.ui.slider(
+        start=0,
+        stop=100_000_000,
+        step=100_000,
+        value=14_000_000,
+        show_value=True,
+        include_input=True,
+        label="Valgt boligverdi (NOK)",
+    )
+    annual_income = mo.ui.number(
+        start=0,
+        value=800_000,
+        step=50_000,
+        label="Årlig bruttoinntekt (NOK, selvvalgt eksempel)",
+    )
+    chart_max = mo.ui.number(
+        start=20_000_000,
+        stop=200_000_000,
+        value=60_000_000,
+        step=10_000_000,
+        label="Kurvenes øvre boligverdi (NOK)",
+    )
+    return (
+        annual_income,
+        chart_max,
+        is_couple,
+        mortgage_debt,
+        other_net_wealth,
+        selected_home,
+    )
 
 
 @app.cell
 def _():
-    COLORS = ["#3498db", "#e74c3c", "#2ecc71", "#f39c12"]
     get_tiers, set_tiers = mo.state(
         [
-            {"limit": 12_000_000, "rate": 30.0},
-            {"limit": None, "rate": 75.0},
+            {"limit": 14_000_000, "rate": 25.0},
+            {"limit": None, "rate": 70.0},
         ]
     )
     base_deduction = mo.ui.number(
-        label="Bunnfradrag (NOK)", value=1_900_000, step=100_000
+        label="Bunnfradrag per person (NOK)",
+        start=0,
+        stop=21_500_000,
+        value=1_900_000,
+        step=100_000,
     )
-    tax_rate_ui = mo.ui.number(label="Skatteprosent (%)", value=1.0, step=0.1)
-    return COLORS, base_deduction, get_tiers, set_tiers, tax_rate_ui
+    tax_rate_ui = mo.ui.number(
+        label="Ordinær skattesats (%)", start=0, stop=10, value=1.0, step=0.1
+    )
+    upper_rate_ui = mo.ui.number(
+        label="Øvre skattesats (%)", start=0, stop=10, value=1.1, step=0.1
+    )
+    return base_deduction, get_tiers, set_tiers, tax_rate_ui, upper_rate_ui
 
 
 @app.cell
 def _(get_tiers, set_tiers):
-    def add_tier():
+    def add_tier() -> None:
         current = get_tiers()
         last_limit = 0
         for t in current:
@@ -68,13 +119,13 @@ def _(get_tiers, set_tiers):
             new_tiers.append(t)
         set_tiers(new_tiers)
 
-    def remove_tier(index):
+    def remove_tier(index: int) -> None:
         current = get_tiers()
         if len(current) > 1:
             new_tiers = [t for i, t in enumerate(current) if i != index]
             set_tiers(new_tiers)
 
-    def update_tier(index, key, value):
+    def update_tier(index: int, key: str, value: float) -> None:
         current = get_tiers()
         new_tiers = list(current)
         new_tiers[index] = {**new_tiers[index], key: value}
@@ -84,20 +135,23 @@ def _(get_tiers, set_tiers):
 
 
 @app.cell
-def _(add_tier, get_tiers, remove_tier, update_tier):
+def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
     current_tiers = get_tiers()
     tier_rows = []
     for i, tier in enumerate(current_tiers):
         is_last = tier["limit"] is None
         rate_input = mo.ui.number(
             value=tier["rate"],
-            label=f"Sats % (Trinn {i + 1})",
+            start=0,
+            stop=100,
+            label=f"Andel med i formuen, % (trinn {i + 1})",
             on_change=lambda v, idx=i: update_tier(idx, "rate", v),
         )
         inputs = [rate_input]
         if not is_last:
             limit_input = mo.ui.number(
                 value=tier["limit"],
+                start=1,
                 label=f"Grense NOK (Trinn {i + 1})",
                 step=1_000_000,
                 on_change=lambda v, idx=i: update_tier(idx, "limit", v),
@@ -116,28 +170,61 @@ def _(add_tier, get_tiers, remove_tier, update_tier):
     add_btn = mo.ui.button(
         label="Legg til verdsettelsesgrense", on_change=lambda _: add_tier()
     )
-    valuation_ui = mo.vstack([mo.md("#### Verdsettelsestrinn:"), *tier_rows, add_btn])
+    tier_presets = mo.hstack(
+        [
+            mo.ui.button(
+                label=f"Boligtrinn: {limit} mill.",
+                on_change=lambda _, limit=limit: set_tiers(
+                    [
+                        {"limit": limit * 1_000_000, "rate": 25.0},
+                        {"limit": None, "rate": 70.0},
+                    ]
+                ),
+            )
+            for limit in (10, 14, 20)
+        ],
+        justify="start",
+    )
+    valuation_ui = mo.vstack(
+        [
+            mo.md("#### Verdsettelsestrinn (sorteres etter grense):"),
+            tier_presets,
+            *tier_rows,
+            add_btn,
+        ]
+    )
     return (valuation_ui,)
 
 
 @app.cell
 def _(
+    annual_income,
     base_deduction,
+    chart_max,
     is_couple,
     mortgage_debt,
     other_net_wealth,
+    selected_home,
     tax_rate_ui,
+    upper_rate_ui,
     valuation_ui,
 ):
     ui_elements = mo.vstack(
         [
             mo.md("### Personlig økonomi"),
             is_couple,
-            mo.hstack([mortgage_debt, other_net_wealth]),
-            mo.md("### Politisk sandkasse (Egendefinerte regler)"),
-            base_deduction,
-            tax_rate_ui,
+            mo.hstack([mortgage_debt, other_net_wealth, annual_income]),
+            selected_home,
+            mo.md("### Politisk sandkasse — sammenlignet med fast 2026-referanse"),
+            mo.hstack([base_deduction, tax_rate_ui, upper_rate_ui]),
             valuation_ui,
+            chart_max,
+            mo.md(
+                "25 % med i formuen betyr 75 % rabatt. En boliggrense lager en knekk, "
+                "ikke et hopp. Inntekt påvirker prosentbelastningen, ikke skatten i kroner. "
+                "Gjeld og andre eiendeler holdes faste langs hele kurven. "
+                "Standardeksemplet har skattestart og boliggrense ved 14 mill."
+            ),
         ]
     )
     return (ui_elements,)
@@ -150,44 +237,234 @@ def _(ui_elements):
 
 
 @app.cell
-def _(COLORS, tax_df):
-    val_chart = create_valuation_chart(tax_df, COLORS, get_chart_domain_and_range)
-    tax_chart = create_tax_chart(tax_df, COLORS, get_chart_domain_and_range)
-
-    mo.vstack([val_chart, tax_chart])
-    return
-
-
-@app.cell
 def _(
+    annual_income,
     base_deduction,
+    chart_max,
     get_tiers,
     is_couple,
     mortgage_debt,
     other_net_wealth,
+    selected_home,
     tax_rate_ui,
+    upper_rate_ui,
 ):
-    current_df = calculate_wealth_tax_df(
-        tiers=[{"limit": 14_000_000, "rate": 25.0}, {"limit": None, "rate": 70.0}],
-        base_deduction=1_900_000.0,
-        tax_rate=1.0,
-        scenario_name="Dagens regelverk",
+    tier_limits = [tier["limit"] for tier in get_tiers() if tier["limit"] is not None]
+    mo.stop(
+        len(tier_limits) != len(set(tier_limits)),
+        mo.md("**Bruk ulike grenser for hvert trinn.**"),
+    )
+    curve_max = max(chart_max.value, selected_home.value, *tier_limits, 14_000_000)
+    shared_inputs = dict(
         is_couple=is_couple.value,
         mortgage_debt=mortgage_debt.value,
         other_net_wealth=other_net_wealth.value,
+        annual_income=annual_income.value,
+        max_value=curve_max,
+        selected_value=selected_home.value,
+    )
+    policy_inputs = [
+        dict(
+            tiers=[{"limit": 14_000_000, "rate": 25.0}, {"limit": None, "rate": 70.0}],
+            base_deduction=1_900_000,
+            tax_rate=1.0,
+            upper_tax_rate=1.1,
+            scenario_name="2026-referanse",
+        ),
+        dict(
+            tiers=get_tiers(),
+            base_deduction=base_deduction.value,
+            tax_rate=tax_rate_ui.value,
+            upper_tax_rate=upper_rate_ui.value,
+            scenario_name="Din sandkasse",
+        ),
+    ]
+    preliminary = [
+        calculate_wealth_tax_df(**policy, **shared_inputs) for policy in policy_inputs
+    ]
+    shared_grid = sorted(set(pl.concat(preliminary)["market_value"].to_list()))
+    scenario_frames = [
+        calculate_wealth_tax_df(**policy, **shared_inputs, extra_values=shared_grid)
+        for policy in policy_inputs
+    ]
+    tax_df = pl.concat(scenario_frames)
+    difference_df = (
+        scenario_frames[1]
+        .select("market_value", "tax")
+        .with_columns(difference=pl.col("tax") - scenario_frames[0]["tax"])
+    )
+    marker_rows = []
+    marker_notes = []
+    for policy in policy_inputs:
+        for boundary_tier in policy["tiers"]:
+            if boundary_tier["limit"] is not None:
+                marker_rows.append(
+                    dict(
+                        market_value=float(boundary_tier["limit"]),
+                        Scenario=policy["scenario_name"],
+                        kind="Boligtrinn",
+                    )
+                )
+        for kind, target in [
+            ("Skattestart", policy["base_deduction"]),
+            ("Øvre skattebånd", 21_500_000),
+        ]:
+            crossing = home_value_at_tax_wealth(
+                policy["tiers"],
+                target * (2 if is_couple.value else 1)
+                - other_net_wealth.value
+                + mortgage_debt.value,
+            )
+            if crossing is not None and crossing <= curve_max:
+                marker_rows.append(
+                    dict(
+                        market_value=crossing,
+                        Scenario=policy["scenario_name"],
+                        kind=kind,
+                    )
+                )
+            note = (
+                "aldri nådd"
+                if crossing is None
+                else "nådd allerede ved boligverdi 0"
+                if crossing == 0
+                else f"{crossing / 1_000_000:.3f} mill. NOK"
+                + (" (utenfor kurven)" if crossing > curve_max else "")
+            )
+            marker_notes.append(f"{policy['scenario_name']} — {kind.lower()}: {note}")
+    markers_df = pl.DataFrame(marker_rows)
+    return (
+        curve_max,
+        difference_df,
+        marker_notes,
+        markers_df,
+        policy_inputs,
+        shared_inputs,
+        tax_df,
     )
 
-    custom_df = calculate_wealth_tax_df(
-        tiers=get_tiers(),
-        base_deduction=base_deduction.value,
-        tax_rate=tax_rate_ui.value,
-        scenario_name="Din sandkasse",
-        is_couple=is_couple.value,
-        mortgage_debt=mortgage_debt.value,
-        other_net_wealth=other_net_wealth.value,
+
+@app.cell
+def _(curve_max, difference_df, marker_notes, markers_df, selected_home, tax_df):
+    selected_rows = tax_df.filter(
+        pl.col("market_value") == selected_home.value
+    ).to_dicts()
+    selected_delta = selected_rows[1]["tax"] - selected_rows[0]["tax"]
+    selected_summary = mo.md(
+        f"### Valgt bolig: {selected_home.value / 1_000_000:g} mill. NOK\n"
+        f"Referanse: **{selected_rows[0]['tax']:,.0f} kr/år** · "
+        f"Sandkasse: **{selected_rows[1]['tax']:,.0f} kr/år** · "
+        f"Endring: **{selected_delta:+,.0f} kr/år**\n\n"
+        f"Økonomisk nettoformue: **{selected_rows[1]['economic_wealth']:,.0f} kr** "
+        "(før skatterabatt). Inntektsandel: "
+        + (
+            f"**{selected_rows[1]['income_share']:.2f} %** av bruttoinntekt."
+            if selected_rows[1]["income_share"] is not None
+            else "ikke definert ved null inntekt."
+        )
     )
-    tax_df = pl.concat([current_df, custom_df])
-    return (tax_df,)
+    curve_panels = [
+        create_curve_panel(
+            tax_df, field, title, markers_df, selected_home.value, curve_max
+        )
+        for field, title in [
+            ("valuation", "Boligens formuesverdi (NOK)"),
+            ("tax_base", "Etter gjeld og fradrag — før nullgulv (NOK)"),
+            ("tax", "Årlig formuesskatt (NOK)"),
+        ]
+    ]
+    delta_panel = create_curve_panel(
+        difference_df.with_columns(Scenario=pl.lit("Din sandkasse")),
+        "difference",
+        "Endring fra referansen (NOK/år)",
+        markers_df,
+        selected_home.value,
+        curve_max,
+    )
+    burden_panel = create_curve_panel(
+        tax_df,
+        "income_share",
+        "Skatt / bruttoinntekt (%)",
+        markers_df,
+        selected_home.value,
+        curve_max,
+    )
+    coordinated_curves = alt.vconcat(
+        *curve_panels, delta_panel, burden_panel
+    ).resolve_scale(x="shared", color="shared")
+    mo.vstack(
+        [
+            selected_summary,
+            coordinated_curves,
+            mo.accordion({"Hvor knekker kurvene?": mo.md("\n\n".join(marker_notes))}),
+        ]
+    )
+    return coordinated_curves, selected_rows
+
+
+@app.function
+def create_curve_panel(
+    df: pl.DataFrame,
+    field: str,
+    title: str,
+    markers: pl.DataFrame,
+    selected: float,
+    maximum: float,
+) -> alt.LayerChart:
+    color = alt.Color(
+        "Scenario:N",
+        scale=alt.Scale(
+            domain=["2026-referanse", "Din sandkasse"], range=["#34495e", "#0072b2"]
+        ),
+    )
+    x = alt.X(
+        "market_value:Q",
+        title="Hele boligens markedsverdi (NOK)",
+        scale=alt.Scale(domain=[0, maximum]),
+        axis=alt.Axis(format="~s"),
+    )
+    lines = (
+        alt.Chart(df)
+        .mark_line()
+        .encode(
+            x=x,
+            y=alt.Y(f"{field}:Q", title=title),
+            color=color,
+            tooltip=[
+                "Scenario:N",
+                alt.Tooltip("market_value:Q", format=",.0f"),
+                alt.Tooltip(f"{field}:Q", format=",.2f"),
+            ],
+        )
+    )
+    boundaries = (
+        alt.Chart(markers)
+        .mark_rule(opacity=0.35)
+        .encode(
+            x=x,
+            color=color,
+            strokeDash=alt.StrokeDash("kind:N", title="Grense"),
+            tooltip=["Scenario:N", "kind:N", "market_value:Q"],
+        )
+    )
+    selected_rule = (
+        alt.Chart(pl.DataFrame({"market_value": [selected]}))
+        .mark_rule(color="#9c6500")
+        .encode(x=x)
+    )
+    dots = (
+        alt.Chart(df.filter(pl.col("market_value") == selected))
+        .mark_point(filled=True, size=55)
+        .encode(x=x, y=f"{field}:Q", color=color)
+    )
+    zero = (
+        alt.Chart(pl.DataFrame({"zero": [0]}))
+        .mark_rule(color="#aaa")
+        .encode(y="zero:Q")
+    )
+    return (lines + boundaries + selected_rule + dots + zero).properties(
+        width=950, height=160
+    )
 
 
 @app.function
@@ -204,6 +481,7 @@ def calculate_wealth_tax_df(
     max_value: float = 60_000_000,
     selected_value: float = 14_000_000,
     annual_income: float = 0,
+    extra_values: list[float] | None = None,
 ) -> pl.DataFrame:
     """Full-owner primary home plus undiscounted assets; debt deducted once.
 
@@ -239,6 +517,7 @@ def calculate_wealth_tax_df(
     points = {0.0, float(max_value), selected_value}
     points.update(float(v) for v in range(0, int(max_value), 100_000))
     points.update(sorted_limits)
+    points.update(extra_values or [])
     for target in (allowance, upper):
         crossing = home_value_at_tax_wealth(
             tiers, target - other_net_wealth + mortgage_debt
@@ -309,53 +588,6 @@ def home_value_at_tax_wealth(tiers: list[dict], target: float) -> float | None:
             accumulated += (limit - previous) * rate
         previous = limit
     return None
-
-
-@app.function
-def get_chart_domain_and_range(df, colors):
-    domain = ["Dagens regelverk", "Din sandkasse"]
-    range_ = ["#000000", colors[0]]
-    return domain, range_
-
-
-@app.function
-def create_valuation_chart(df, colors, get_chart_domain_and_range_fn):
-    domain, range_ = get_chart_domain_and_range_fn(df, colors)
-    return (
-        alt.Chart(df)
-        .mark_line()
-        .encode(
-            x=alt.X("market_value:Q", title="Reell markedsverdi (NOK)"),
-            y=alt.Y("valuation:Q", title="Formuesverdi (NOK)"),
-            color=alt.Color(
-                "Scenario:N",
-                scale=alt.Scale(domain=domain, range=range_),
-            ),
-            tooltip=["market_value", "valuation", "Scenario"],
-        )
-        .properties(
-            width="container", height=350, title="Verdsettelseskurve (Formuesverdi)"
-        )
-    )
-
-
-@app.function
-def create_tax_chart(df, colors, get_chart_domain_and_range_fn):
-    domain, range_ = get_chart_domain_and_range_fn(df, colors)
-    return (
-        alt.Chart(df)
-        .mark_line()
-        .encode(
-            x=alt.X("market_value:Q", title="Reell markedsverdi (NOK)"),
-            y=alt.Y("tax:Q", title="Årlig formuesskatt (NOK)"),
-            color=alt.Color(
-                "Scenario:N",
-                scale=alt.Scale(domain=domain, range=range_),
-            ),
-            tooltip=["market_value", "tax", "Scenario"],
-        )
-        .properties(width="container", height=350, title="Formuesskatteffekt")
-    )
 
 
 if __name__ == "__main__":
