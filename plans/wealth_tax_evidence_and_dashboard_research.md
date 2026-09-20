@@ -1,6 +1,6 @@
 # Research plan: Norwegian housing wealth, tax incidence, and public revenue
 
-**Status:** Core dashboard implemented. On 20 September 2026 the user requested autonomous work first and **all human review at the end**. The current authorised task is the legal evidence audit and this sequencing update; it does not silently authorise calculator changes or optional features. See the current execution order below and progress records at the bottom. Earlier “plan only” wording records the original research-session scope.  
+**Status:** Core dashboard implemented. On 20 September 2026 the user requested autonomous work first and **all human review at the end**. The legal audit and subsequently authorised bounded February/May official-estimate investigation are complete; the latter records an unresolved evidence gap, not a forced reconciliation. Neither authorises calculator changes or optional features. See the current execution order below and progress records at the bottom. Earlier “plan only” wording records the original research-session scope.  
 **Initial source review:** 20 September 2026.  
 **Target app:** `apps/building_taxation.py`.  
 **Scope:** Primary-residence wealth taxation first, within a combined household balance-sheet and income context. Secondary-residence policy and municipal property tax are separate extensions.  
@@ -508,7 +508,7 @@ Source IDs S11–S13 from the first draft concerned commissioned/restricted data
 - [ ] Complete remaining legal detail: annual tax-resolution archive, municipality-specific 2026 decisions, and special property/taxpayer cases. Do not represent these as supported calculator features.
 - [x] Save reproducible snapshots and claims ledgers for the implemented public references, official scenarios and legal audit.
 - [ ] Extend those ledgers as remaining evidence gaps are investigated; do not imply all planned sources have been verified.
-- [ ] Reconcile February versus May threshold-revenue estimates and comparison baselines.
+- [x] Investigate February versus May threshold-revenue estimates and comparison baselines within a bounded open-source search; record unresolved numerical reconciliation in `data/wealth/official_estimate_reconciliation_2026.md`.
 - [x] Reconstruct public housing-figure bins from PDF vectors; document interpolation, assumed bin boundaries and unknown tail.
 - [x] Extract S17 financial-wealth chart data; display verified financial composition. Matching housing/debt components remain an open extension.
 - [ ] Select initial weighted profiles and low/base/high population assumptions using open data only.
@@ -553,4 +553,15 @@ Four reviewable `feat - wealth lab` JJ changes, without moving bookmarks or inte
 - [x] Keep calculator numbers/code unchanged. Any app provenance/eligibility clarification or ownership extension is a separate task, not an implicit consequence of the audit.
 - [x] Verify new snapshot hashes/legal markers and derived ownership arithmetic; rerun the 18 existing unit tests and generated-reference check. Documentation-only change; no Marimo restart or new browser/WASM export.
 
-**Next independent plan task:** investigate whether open sources explain the February/May official-estimate difference, beginning with the original source baselines and model vintages. If no reconciliation is published, produce a bounded evidence-gap record rather than forced arithmetic. Matching housing/debt composition and ownership mapping remain the subsequent data-feasibility questions. Human dashboard evaluation stays at the end.
+### Official-estimate investigation — 20 September 2026
+
+- [x] Following explicit user approval, re-read original archived sources and the claims ledger before searching; produce the full baseline/vintage/population/year/accounting/exclusions comparison matrix in `data/wealth/official_estimate_reconciliation_2026.md`.
+- [x] Archive six primary sources in new immutable `data/wealth/2026-09-20-reconciliation/` with URLs/date/SHA-256 hashes; preserve all earlier snapshots.
+- [x] Establish that the original May proposition already gives −830m and neither linked correction letter revises it. The corrected-edition date does not explain the difference.
+- [x] Verify February's published manuscript explicitly compares −730m with 2025 and reports a −280m package total. Matching package totals are not proof of matching counterfactuals.
+- [x] Distinguish SSB's published explanation of January versus earlier model estimates from the still-unexplained February/May threshold difference. Complete six search queries plus direct-source link follow-up; record poor search coverage and the limited negative finding.
+- [x] Leave calculator, dependencies, embedded values and packaging unchanged; do not calibrate or invent a numerical bridge.
+
+**Outcome:** bounded documentary task complete; numerical reconciliation remains an evidence gap. Verification passed: all six new source hashes, original-May/February-manuscript evidence markers, 18 unit tests, generated-reference consistency and Ruff. Diff review confirms evidence/documentation-only scope. No new WASM/browser run is needed for this evidence-only work.
+
+**Next independent plan task, subject to authorisation:** matching housing/debt composition and ownership/tax-unit mapping feasibility using public sources. Reopen official-estimate reconciliation only for a concrete new public lead. Human dashboard evaluation stays at the end.

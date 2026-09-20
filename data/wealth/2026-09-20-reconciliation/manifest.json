@@ -1,0 +1,35 @@
+{
+  "retrieved": "2026-09-20",
+  "sources": [
+    {
+      "file": "proposition-original.pdf",
+      "url": "https://www.regjeringen.no/contentassets/0fe41978009845298db8d30eecb82167/nn-no/opri/prp202520260095000dddopri.pdf",
+      "sha256": "658b9e3e53f5c5a3ca27cb2feebe78a724cbab0fe87e391481a178858afc480f"
+    },
+    {
+      "file": "correction-may29.pdf",
+      "url": "https://www.regjeringen.no/contentassets/0fe41978009845298db8d30eecb82167/nn-no/rett/rettebrev1.pdf",
+      "sha256": "ffd4937ee15f5a47f89046e4f4dec46796f6d2f423bfcca1ac039561fff82d12"
+    },
+    {
+      "file": "correction-june08.pdf",
+      "url": "https://www.regjeringen.no/contentassets/0fe41978009845298db8d30eecb82167/nn-no/rett/rettebrev2.pdf",
+      "sha256": "66340f88d43a7cd589b7121d66ac758bfd007829bc985837014e75990eb606cb"
+    },
+    {
+      "file": "february-announcement.html",
+      "url": "https://www.regjeringen.no/no/aktuelt/mer-rettferdig-formuesskatt-med-oppdatert-boligmodell/id3150420/",
+      "sha256": "dc7b4c1c8a882de662a53dab81608ed5e56718c119c0e078523c21579f368afd"
+    },
+    {
+      "file": "january-ssb.html",
+      "url": "https://www.ssb.no/priser-og-prisindekser/boligpriser-og-boligprisindekser/artikler/ny-boligverdsetting-oker-inntektene-fra-formuesskatten",
+      "sha256": "4bd727fb42650952111a59a91688f26102725c071264afeec4823b6f5aa5ca9f"
+    },
+    {
+      "file": "february-speech.html",
+      "url": "https://www.regjeringen.no/no/aktuelt/manus-fra-pressekonferanse-om-oppdatert-modell-for-verdsetting-av-boliger/id3150454/",
+      "sha256": "5fde666ea5e58f3caf423398bae46998b7aedc5127fc681ea9895317ae1e76c0"
+    }
+  ]
+}

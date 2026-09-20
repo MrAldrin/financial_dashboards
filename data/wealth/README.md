@@ -63,6 +63,8 @@ Claims ledger:
 | Housing presentation, slide 5 | −730m threshold contribution in a figure comparing with continuation of the 2025 system into 2026. No extra accrued/booked classification is inferred from this slide. |
 | Proposition, chapter 3, paragraphs 3–4 | −830m accrued in 2026 for 10→14m versus adopted budget; +550m updated model estimate versus assumptions behind adoption; combined package −280m accrued, with booked 2026 effect estimated at zero. These are not three separate threshold reforms. |
 
+The [bounded official-estimate investigation](official_estimate_reconciliation_2026.md) records the comparison matrix, six-query search and unresolved evidence gap. Six newly archived sources are in `2026-09-20-reconciliation/` with exact URLs and SHA-256 hashes. The original May proposition already contains −830m; neither linked correction letter revises it. February's published manuscript explicitly ties −730m to the 2025 comparison and states a −280m package total, but does not provide a bridge to May. SSB explains its January-versus-earlier model revision, not this threshold-estimate difference.
+
 February's −730m and May's −830m remain unreconciled, separately dated estimates. The live app instead compares arbitrary settings against a 14m reference, so choosing 10m reverses the official relief direction. Reversing a sign does not make its property/common-profile population compatible with an official national model. The app's official-scenario section makes no calibration, attribution of income to individual homeowners, or enacted-law claim; the separate legal audit below now establishes the housing amendment's adoption.
 
 ## Legal evidence audit
@@ -77,4 +79,4 @@ Municipality-specific 2026 decisions, the annual parliamentary tax-resolution ar
 - Housing, financial assets and debt jointly distributed across wealth groups.
 - Ownership/tax-unit mapping sufficient for a national receipts forecast.
 - Annual tax-resolution archive, municipality-specific 2026 exceptions, special legal cases and calculator support for mixed-asset debt allocation (core legal principles and housing enactment are now audited).
-- Reconciliation of February (730m) versus May (830m) official threshold estimates and their different reference vintages. These are not combined or used as a calibration target here.
+- February (730m) versus May (830m) threshold-estimate bridge remains unavailable in the bounded investigation above. Different stated baselines are verified; a changed underlying data vintage is not established for these two threshold figures. These are not combined or used as a calibration target here.
