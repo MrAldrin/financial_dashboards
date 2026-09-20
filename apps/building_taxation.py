@@ -1,3 +1,8 @@
+# /// script
+# requires-python = ">=3.13"
+# dependencies = ["marimo>=0.23.9", "polars>=1.36", "altair>=6"]
+# ///
+
 import marimo
 
 __generated_with = "0.23.9"
@@ -40,9 +45,7 @@ def _():
     base_deduction = mo.ui.number(
         label="Bunnfradrag (NOK)", value=1_900_000, step=100_000
     )
-    tax_rate_ui = mo.ui.number(
-        label="Skatteprosent (%)", value=1.0, step=0.1
-    )
+    tax_rate_ui = mo.ui.number(label="Skatteprosent (%)", value=1.0, step=0.1)
     return COLORS, base_deduction, get_tiers, set_tiers, tax_rate_ui
 
 
@@ -88,21 +91,21 @@ def _(add_tier, get_tiers, remove_tier, update_tier):
         is_last = tier["limit"] is None
         rate_input = mo.ui.number(
             value=tier["rate"],
-            label=f"Sats % (Trinn {i+1})",
+            label=f"Sats % (Trinn {i + 1})",
             on_change=lambda v, idx=i: update_tier(idx, "rate", v),
         )
         inputs = [rate_input]
         if not is_last:
             limit_input = mo.ui.number(
                 value=tier["limit"],
-                label=f"Grense NOK (Trinn {i+1})",
+                label=f"Grense NOK (Trinn {i + 1})",
                 step=1_000_000,
                 on_change=lambda v, idx=i: update_tier(idx, "limit", v),
             )
             inputs.append(limit_input)
         else:
             inputs.append(
-                mo.md(f"Alt over forrige grense").style({"padding-top": "25px"})
+                mo.md("Alt over forrige grense").style({"padding-top": "25px"})
             )
         if not is_last:
             remove_btn = mo.ui.button(
@@ -113,9 +116,7 @@ def _(add_tier, get_tiers, remove_tier, update_tier):
     add_btn = mo.ui.button(
         label="Legg til verdsettelsesgrense", on_change=lambda _: add_tier()
     )
-    valuation_ui = mo.vstack(
-        [mo.md("#### Verdsettelsestrinn:"), *tier_rows, add_btn]
-    )
+    valuation_ui = mo.vstack([mo.md("#### Verdsettelsestrinn:"), *tier_rows, add_btn])
     return (valuation_ui,)
 
 
@@ -198,8 +199,55 @@ def calculate_wealth_tax_df(
     is_couple: bool,
     mortgage_debt: float,
     other_net_wealth: float,
+    upper_tax_rate: float = 1.1,
+    upper_threshold: float = 21_500_000,
+    max_value: float = 60_000_000,
+    selected_value: float = 14_000_000,
+    annual_income: float = 0,
 ) -> pl.DataFrame:
-    df = pl.DataFrame({"market_value": range(0, 30_500_000, 500_000)})
+    """Full-owner primary home plus undiscounted assets; debt deducted once.
+
+    Joint assessment doubles the allowance and upper tax threshold, not the
+    whole-property valuation tier. Mixed discounted assets are outside scope.
+    Rates are percentages; upper_threshold is BEFORE the personal allowance.
+    """
+    sorted_limits = sorted(t["limit"] for t in tiers if t["limit"] is not None)
+    if (
+        not tiers
+        or sum(t["limit"] is None for t in tiers) != 1
+        or len(set(sorted_limits)) != len(sorted_limits)
+        or any(limit <= 0 for limit in sorted_limits)
+        or any(not 0 <= t["rate"] <= 100 for t in tiers)
+        or min(
+            base_deduction,
+            tax_rate,
+            upper_tax_rate,
+            mortgage_debt,
+            other_net_wealth,
+            annual_income,
+            selected_value,
+        )
+        < 0
+        or upper_threshold < base_deduction
+        or max_value <= 0
+    ):
+        raise ValueError("Invalid tiers, balance sheet, or tax schedule")
+    multiplier = 2 if is_couple else 1
+    allowance = base_deduction * multiplier
+    upper = upper_threshold * multiplier
+    # Exact inverse breakpoints prevent a sampled line from rounding off kinks.
+    points = {0.0, float(max_value), selected_value}
+    points.update(float(v) for v in range(0, int(max_value), 100_000))
+    points.update(sorted_limits)
+    for target in (allowance, upper):
+        crossing = home_value_at_tax_wealth(
+            tiers, target - other_net_wealth + mortgage_debt
+        )
+        if crossing is not None:
+            points.add(crossing)
+    df = pl.DataFrame(
+        {"market_value": sorted(v for v in points if 0 <= v <= max_value)}
+    )
     sorted_tiers = sorted(
         tiers, key=lambda x: x["limit"] if x["limit"] is not None else float("inf")
     )
@@ -208,9 +256,11 @@ def calculate_wealth_tax_df(
     for tier in sorted_tiers:
         limit = tier["limit"] if tier["limit"] is not None else float("inf")
         rate = tier.get("rate", 0.0) / 100
-        portion = pl.when(pl.col("market_value") > prev_limit).then(
-            pl.min_horizontal(pl.col("market_value"), limit) - prev_limit
-        ).otherwise(0.0)
+        portion = (
+            pl.when(pl.col("market_value") > prev_limit)
+            .then(pl.min_horizontal(pl.col("market_value"), limit) - prev_limit)
+            .otherwise(0.0)
+        )
         valuation_expr += portion * rate
         prev_limit = limit
     df = df.with_columns(valuation=valuation_expr)
@@ -219,13 +269,46 @@ def calculate_wealth_tax_df(
     )
     actual_base_ded = base_deduction * 2 if is_couple else base_deduction
     df = df.with_columns(
-        taxable_wealth=pl.max_horizontal(0, pl.col("net_wealth") - actual_base_ded)
+        tax_base=pl.col("net_wealth") - actual_base_ded,
+        economic_wealth=pl.col("market_value") + other_net_wealth - mortgage_debt,
+        taxable_wealth=pl.max_horizontal(0, pl.col("net_wealth") - actual_base_ded),
     )
+    # Clip each band independently: the upper band starts at net taxable wealth,
+    # not at (upper threshold + allowance).
     df = df.with_columns(
-        tax=pl.col("taxable_wealth") * (tax_rate / 100),
+        tax=(
+            pl.min_horizontal(pl.col("taxable_wealth"), upper - allowance)
+            * (tax_rate / 100)
+            + pl.max_horizontal(0, pl.col("net_wealth") - upper)
+            * (upper_tax_rate / 100)
+        ),
         Scenario=pl.lit(scenario_name),
     )
-    return df
+    return df.with_columns(
+        income_share=pl.col("tax") / annual_income * 100
+        if annual_income > 0
+        else pl.lit(None, dtype=pl.Float64)
+    )
+
+
+@app.function
+def home_value_at_tax_wealth(tiers: list[dict], target: float) -> float | None:
+    """Invert continuous progressive valuation; None means never reached."""
+    if target <= 0:
+        return 0.0
+    previous = 0.0
+    accumulated = 0.0
+    for tier in sorted(
+        tiers, key=lambda t: float("inf") if t["limit"] is None else t["limit"]
+    ):
+        limit = float("inf") if tier["limit"] is None else tier["limit"]
+        rate = tier["rate"] / 100
+        if rate > 0 and target <= accumulated + (limit - previous) * rate:
+            return previous + (target - accumulated) / rate
+        if rate > 0:
+            accumulated += (limit - previous) * rate
+        previous = limit
+    return None
 
 
 @app.function
