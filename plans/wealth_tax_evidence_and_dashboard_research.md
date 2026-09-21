@@ -129,7 +129,7 @@ This enables an honest dynamic statement such as “your specified household is 
 
 ### Earlier ideas to carry forward with sources
 
-`plans/norwegian_taxation_dashboard_improvements.md` already points toward population distributions and public-revenue context. Keep that direction. Its proposed counts, housing-price averages, budget figures, and log-normal parameters are starting hypotheses to replace with open-source values or documented estimates, not reasons to discard population modelling.
+The retired early dashboard-improvement proposal pointed toward population distributions and public-revenue context. Keep that direction. Its proposed counts, housing-price averages, budget figures, and log-normal parameters were unverified starting hypotheses, not evidence or current defaults. Use open-source values or documented estimates rather than discarding population modelling. See [the plan index](README.md) for the disposition of retired proposals.
 
 - Prefer published bins or reconstructed public-chart bins to fitting a single curve from only a mean and median; use a fitted distribution when useful and show tail sensitivity.
 - A housing distribution directly supports counts above/below a threshold. Revenue additionally needs assumed debt, other assets and tax-unit structure; estimate these transparently rather than implying that property counts alone determine actual liabilities.

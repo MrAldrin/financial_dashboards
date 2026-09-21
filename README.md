@@ -1,68 +1,60 @@
-# marimo WebAssembly + GitHub Pages Template
+# Financial dashboards
 
-This template repository demonstrates how to export [marimo](https://marimo.io) notebooks to WebAssembly and deploy them to GitHub Pages.
+Interactive [marimo](https://marimo.io) notebooks, exported to WebAssembly and deployed to GitHub Pages.
 
-## 📚 Included Examples
+## Dashboards
 
-- `apps/charts.py`: Interactive data visualization with Altair
-- `notebooks/fibonacci.py`: Interactive Fibonacci sequence calculator
-- `notebooks/penguins.py`: Interactive data analysis with Polars and marimo
+- `apps/building_taxation.py`: Norwegian primary-residence wealth-tax sandbox, policy curves and sourced wealth/population context. Population illustrations are assumption-dependent, not validated national revenue predictions.
+- `apps/dashboard_stock_investment.py`: stock-investment dashboard.
+- `notebooks/penguins.py`: example data-analysis notebook.
 
-## 🚀 Usage
+## Plans and evidence
 
-1. Fork this repository
-2. Add your marimo files to the `notebooks/` or `apps/` directory
-   1. `notebooks/` notebooks are exported with `--mode edit`
-   2. `apps/` notebooks are exported with `--mode run`
-3. Push to main branch
-4. Go to repository **Settings > Pages** and change the "Source" dropdown to "GitHub Actions"
-5. GitHub Actions will automatically build and deploy to Pages
+- [Plan index](plans/README.md)
+- [Current autonomous execution queue](plans/wealth_tax_autonomous_followthrough.md)
+- [Wealth-tax research and implementation record](plans/wealth_tax_evidence_and_dashboard_research.md)
+- [Public data, provenance and model limitations](data/wealth/README.md)
 
-## Including data or assets
+Read [AGENTS.md](AGENTS.md) for repository instructions. The wealth-tax app is an educational model with explicit legal and data exclusions, not a complete tax-return calculator.
 
-To include data or assets in your notebooks, add them to the `public/` directory.
+## Local development
 
-For example, the `apps/charts.py` notebook loads an image asset from the `public/` directory.
+Dependencies and commands use `uv`. To open the wealth-tax notebook for editing:
 
-```markdown
-<img src="public/logo.png" width="200" />
+```bash
+uv run marimo edit apps/building_taxation.py
 ```
 
-And the `notebooks/penguins.py` notebook loads a CSV dataset from the `public/` directory.
+If a Marimo session is already running, edit the file without restarting it; Marimo watches for changes.
 
-```python
-import polars as pl
-df = pl.read_csv(mo.notebook_location() / "public" / "penguins.csv")
+## Validation
+
+```bash
+uv run python -m unittest discover -s tests
+uv run ruff check .
+uv run marimo check apps/building_taxation.py
+uv run scripts/build_wealth_reference.py --check
 ```
 
-## 🎨 Templates
+## WebAssembly preview
 
-This repository includes several templates for the generated site:
+```bash
+uv run .github/scripts/build.py
+python -m http.server -d _site
+```
 
-1. `index.html.j2` (default): A template with styling and a footer
-2. `bare.html.j2`: A minimal template with basic styling
-3. `tailwind.html.j2`: A minimal and lean template using Tailwind CSS
+Open `http://localhost:8000`. The build exports `apps/` in run mode and `notebooks/` in edit mode. After building, the automated wealth-tax browser check is:
 
-To use a specific template, pass the `--template` parameter to the build script:
+```bash
+uv run scripts/check_wealth_browser.py
+```
+
+See [template documentation](templates/README.md) for generated-site styling. For example:
 
 ```bash
 uv run .github/scripts/build.py --template templates/tailwind.html.j2
 ```
 
-You can also create your own custom templates. See the [templates/README.md](templates/README.md) for more information.
+## Deployment
 
-## 🧪 Testing
-
-To test the export process, run `.github/scripts/build.py` from the root directory.
-
-```bash
-uv run .github/scripts/build.py
-```
-
-This will export all notebooks in a folder called `_site/` in the root directory. Then to serve the site, run:
-
-```bash
-python -m http.server -d _site
-```
-
-This will serve the site at `http://localhost:8000`.
+GitHub Actions exports the notebooks and deploys GitHub Pages on updates to `main`. Browser/WASM verification should precede integration. Pushing, bookmark movement and integration remain user-controlled; writing a plan or completing checks does not authorise deployment.

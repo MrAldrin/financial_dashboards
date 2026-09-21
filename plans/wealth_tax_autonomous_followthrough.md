@@ -81,7 +81,7 @@ Use a bounded direct-source follow-up: at most one targeted search pass and rele
 
 ### T2b: supported scenario implementation
 
-- Add explicit ownership-share and single/qualifying-joint-unit scenarios only for cases established in T2a.
+- Extend the existing `is_couple` handling rather than rebuild it: the current engine already doubles the allowance and upper tax threshold. Verify and clarify qualifying-joint-unit semantics, and add ownership-share scenarios only for cases established in T2a.
 - Retain the simplified asset scope; do not add discounted shares/business assets or full statutory debt allocation implicitly.
 - Keep whole-home price distinct from the share belonging to the selected tax unit. Apply valuation tiers to the whole property before ownership allocation where the verified rule requires it.
 - Label assets/debt/income as belonging to the selected tax unit; avoid double allocation. Explain that summing unrelated co-owners is not joint assessment.
