@@ -12,18 +12,23 @@ with app.setup:
     import marimo as mo
     import polars as pl
     import altair as alt
+    from math import isfinite
 
 
 @app.cell
 def _():
     mo.md("""
     # Bolig, formue og skatt — utforsk samspillet
-    **Modellberegning, ikke en skattemelding.** Hele primærboligen eies av én
-    skatteenhet (én person eller kvalifisert fellesfastsetting). Andre eiendeler
-    er bankinnskudd / eiendeler uten verdsettingsrabatt. Gjeld trekkes fra én gang.
-    Aksjer med rabatt, delt eierskap og kommunale særregler er ikke modellert.
+    **Modellberegning, ikke en skattemelding.** Velg én skatteenhets andel av en
+    ordinær primærbolig (én person eller kvalifisert fellesfastsetting).
+    Hele boligen verdsettes før eierandelen fordeles. Andre eiendeler er
+    bankinnskudd / eiendeler uten verdsettingsrabatt. Gjeld trekkes fra én gang.
+    Aksjer med rabatt, sekundærbolig, særskilte flerboligbygg, blandet bostedsstatus
+    innen skatteenheten og kommunale særregler er ikke modellert.
 
-    Referanse: publiserte [2026-satser fra Skatteetaten](https://www.skatteetaten.no/satser/formuesskatt/),
+    Boligregelen er vedtatt i [lov 23.06.2026 nr. 66, II/IV](https://lovdata.no/dokument/LTI/lov/2026-06-23-66),
+    med virkning fra inntektsåret 2026. Standardrater, ikke alle kommuners satser:
+    publiserte [2026-satser fra Skatteetaten](https://www.skatteetaten.no/satser/formuesskatt/),
     14 mill. boliggrense, 25/70 % verdsettelse, 1,9 mill. fradrag,
     1/1,1 % skatt og øvre innslag 21,5 mill. Dette er ikke en full juridisk regelmotor.
     """)
@@ -35,11 +40,21 @@ def _():
     is_couple = mo.ui.switch(
         label="Fellesfastsetting (doble personlige innslag, ikke boliggrensen)"
     )
+    ownership_share_ui = mo.ui.number(
+        label="Skatteenhetens samlede eierandel (%)",
+        start=0,
+        stop=100,
+        value=100,
+        step=1,
+    )
     mortgage_debt = mo.ui.number(
-        label="Samlet gjeld (NOK)", start=0, value=1_600_000, step=100_000
+        label="Skatteenhetens gjeld (NOK, allerede fordelt)",
+        start=0,
+        value=1_600_000,
+        step=100_000,
     )
     other_net_wealth = mo.ui.number(
-        label="Andre eiendeler uten rabatt, før gjeld (NOK)",
+        label="Skatteenhetens andre eiendeler uten rabatt, før gjeld (NOK)",
         start=0,
         value=0,
         step=100_000,
@@ -51,13 +66,13 @@ def _():
         value=14_000_000,
         show_value=True,
         include_input=True,
-        label="Valgt boligverdi (NOK)",
+        label="Hele boligens verdi (NOK)",
     )
     annual_income = mo.ui.number(
         start=0,
         value=800_000,
         step=50_000,
-        label="Årlig bruttoinntekt (NOK, selvvalgt eksempel)",
+        label="Skatteenhetens årlige bruttoinntekt (NOK)",
     )
     chart_max = mo.ui.number(
         start=20_000_000,
@@ -72,6 +87,7 @@ def _():
         is_couple,
         mortgage_debt,
         other_net_wealth,
+        ownership_share_ui,
         selected_home,
     )
 
@@ -207,6 +223,7 @@ def _(
     is_couple,
     mortgage_debt,
     other_net_wealth,
+    ownership_share_ui,
     selected_home,
     tax_rate_ui,
     upper_rate_ui,
@@ -216,6 +233,19 @@ def _(
         [
             mo.md("### Personlig økonomi"),
             is_couple,
+            mo.md(
+                "Fellesfastsetting er et selvvalgt scenario, ikke en kvalifikasjonskontroll. "
+                "Ekteskapets inngåelsesår og separasjon/varig adskillelse ved årsslutt "
+                "har særregler. Institusjonsopphold alene er ikke varig adskillelse. "
+                "Vanlige samboere beregnes hver for seg; bare særskilt kvalifiserte "
+                "meldepliktige samboere omfattes. "
+                "[Regler: §§ 2-10–2-16](https://lovdata.no/dokument/NL/lov/1999-03-26-14/§2-10). "
+                "Ved fellesfastsetting oppgis samlet eierandel og økonomi for begge. "
+                "Et kvalifisert par som eier 50 % hver, oppgir 100 %. "
+                "All oppgitt boligandel må være primærbolig for skatteenheten. "
+                "Andre eiendeler, gjeld og inntekt er allerede fordelt og skaleres ikke med eierandelen."
+            ),
+            ownership_share_ui,
             mo.hstack([mortgage_debt, other_net_wealth, annual_income]),
             selected_home,
             mo.md("### Politisk sandkasse — sammenlignet med fast 2026-referanse"),
@@ -248,6 +278,7 @@ def _(
     is_couple,
     mortgage_debt,
     other_net_wealth,
+    ownership_share_ui,
     selected_home,
     tax_rate_ui,
     upper_rate_ui,
@@ -261,6 +292,7 @@ def _(
     curve_max = max(chart_max.value, selected_home.value, *tier_limits, 14_000_000)
     shared_inputs = dict(
         is_couple=is_couple.value,
+        ownership_share=ownership_share_ui.value / 100,
         mortgage_debt=mortgage_debt.value,
         other_net_wealth=other_net_wealth.value,
         annual_income=annual_income.value,
@@ -318,6 +350,7 @@ def _(
                 target * (2 if is_couple.value else 1)
                 - other_net_wealth.value
                 + mortgage_debt.value,
+                ownership_share=shared_inputs["ownership_share"],
             )
             if crossing is not None and crossing <= curve_max:
                 marker_rows.append(
@@ -367,6 +400,7 @@ def _(
         f"Referanse: **{selected_rows[0]['tax']:,.0f} kr/år** · "
         f"Sandkasse: **{selected_rows[1]['tax']:,.0f} kr/år** · "
         f"Endring: **{selected_delta:+,.0f} kr/år**\n\n"
+        f"Skatteenhetens boligandel: **{selected_rows[1]['owned_market_value']:,.0f} kr** · "
         f"Økonomisk nettoformue: **{selected_rows[1]['economic_wealth']:,.0f} kr** "
         "(før skatterabatt). Inntektsandel: "
         + (
@@ -380,7 +414,7 @@ def _(
             tax_df, field, title, markers_df, selected_home.value, curve_max
         )
         for field, title in [
-            ("valuation", "Boligens formuesverdi (NOK)"),
+            ("valuation", "Skatteenhetens boligformuesverdi (NOK)"),
             ("tax_base", "Etter gjeld og fradrag — før nullgulv (NOK)"),
             ("tax", "Årlig formuesskatt (NOK)"),
         ]
@@ -477,7 +511,9 @@ def _(get_tiers, housing_df, reference, selected_rows):
                 f"### Hvor ligger eksemplet i formuesfordelingen?\n**{wealth_context}**\n\n"
                 "SSB 10318, beregnet nettoformue i **2024**, husholdninger uten studenthusholdninger. "
                 "Dette er et intervall, ikke en eksakt rang. Dagens egenoppgitte kroner sammenlignes "
-                "uten prisjustering; pensjonsrettigheter er ikke med. Et dyrt hus alene bestemmer ikke rang."
+                "uten prisjustering; pensjonsrettigheter er ikke med. Et dyrt hus alene bestemmer ikke rang. "
+                "Skatteenheten er ikke nødvendigvis en hel statistisk husholdning: særlig ved delt "
+                "eierskap er dette kun en beløpssammenligning, ikke din personlige persentil."
             ),
             mo.md(
                 f"### Hvor mange boliger ligger over grensene?\n"
@@ -527,6 +563,7 @@ def _():
                 "### Fordelingsvektet illustrasjon — ikke et anslag på Norges faktiske proveny\n"
                 "**Felles profil:** Vi legger samme gjeld, andre eiendeler og fastsettingsform som "
                 "du valgte over, på alle boliger. Én hel-eier-skatteenhet per bolig. "
+                "Din personlige eierandel brukes ikke her: illustrasjonen beholder 100 % eierskap. "
                 "Dette er en kontrollert øvelse, ikke observerte norske husholdninger. "
                 "Halen er selvvalgt: halvparten i 30–40 mill., halvparten i 40 mill.–øvre verdi. "
                 "Alle intervaller antas jevnt fordelt i midtestimatet."
@@ -559,6 +596,7 @@ def _(policy_inputs, reference, shared_inputs, tail_count_ui, tail_upper_ui):
                 policy_inputs,
                 {
                     **shared_inputs,
+                    "ownership_share": 1.0,
                     "mortgage_debt": shared_inputs["mortgage_debt"] * debt_factor,
                 },
             )
@@ -1113,13 +1151,41 @@ def calculate_wealth_tax_df(
     selected_value: float = 14_000_000,
     annual_income: float = 0,
     extra_values: list[float] | None = None,
+    ownership_share: float = 1.0,
 ) -> pl.DataFrame:
-    """Full-owner primary home plus undiscounted assets; debt deducted once.
+    """Allocate whole-primary-home valuation to one tax unit before taxation.
 
     Joint assessment doubles the allowance and upper tax threshold, not the
     whole-property valuation tier. Mixed discounted assets are outside scope.
+    Assets/debt/income already belong to that unit and are never share-scaled.
     Rates are percentages; upper_threshold is BEFORE the personal allowance.
     """
+    numeric_inputs = [
+        base_deduction,
+        tax_rate,
+        upper_tax_rate,
+        upper_threshold,
+        mortgage_debt,
+        other_net_wealth,
+        annual_income,
+        selected_value,
+        max_value,
+        ownership_share,
+        *(extra_values or []),
+        *(t["rate"] for t in tiers),
+        *(t["limit"] for t in tiers if t["limit"] is not None),
+    ]
+    if (
+        not isinstance(is_couple, bool)
+        or any(
+            not isinstance(v, (int, float)) or not isfinite(v) for v in numeric_inputs
+        )
+        or not 0 <= ownership_share <= 1
+        or any(v < 0 for v in (extra_values or []))
+    ):
+        raise ValueError(
+            "Finite numeric inputs, boolean assessment and share in [0, 1] required"
+        )
     sorted_limits = sorted(t["limit"] for t in tiers if t["limit"] is not None)
     if (
         not tiers
@@ -1151,7 +1217,7 @@ def calculate_wealth_tax_df(
     points.update(extra_values or [])
     for target in (allowance, upper):
         crossing = home_value_at_tax_wealth(
-            tiers, target - other_net_wealth + mortgage_debt
+            tiers, target - other_net_wealth + mortgage_debt, ownership_share
         )
         if crossing is not None:
             points.add(crossing)
@@ -1173,14 +1239,19 @@ def calculate_wealth_tax_df(
         )
         valuation_expr += portion * rate
         prev_limit = limit
-    df = df.with_columns(valuation=valuation_expr)
+    # Apply progressive tiers to the whole property, THEN allocate its value.
+    df = df.with_columns(
+        whole_home_valuation=valuation_expr,
+        valuation=valuation_expr * ownership_share,
+        owned_market_value=pl.col("market_value") * ownership_share,
+    )
     df = df.with_columns(
         net_wealth=pl.col("valuation") + other_net_wealth - mortgage_debt
     )
     actual_base_ded = base_deduction * 2 if is_couple else base_deduction
     df = df.with_columns(
         tax_base=pl.col("net_wealth") - actual_base_ded,
-        economic_wealth=pl.col("market_value") + other_net_wealth - mortgage_debt,
+        economic_wealth=pl.col("owned_market_value") + other_net_wealth - mortgage_debt,
         taxable_wealth=pl.max_horizontal(0, pl.col("net_wealth") - actual_base_ded),
     )
     # Clip each band independently: the upper band starts at net taxable wealth,
@@ -1202,10 +1273,21 @@ def calculate_wealth_tax_df(
 
 
 @app.function
-def home_value_at_tax_wealth(tiers: list[dict], target: float) -> float | None:
-    """Invert continuous progressive valuation; None means never reached."""
+def home_value_at_tax_wealth(
+    tiers: list[dict], target: float, ownership_share: float = 1.0
+) -> float | None:
+    """Invert allocated valuation into whole-home value; None means unreachable."""
+    if (
+        not isfinite(ownership_share)
+        or not 0 <= ownership_share <= 1
+        or not isfinite(target)
+    ):
+        raise ValueError("Finite target and ownership share in [0, 1] required")
     if target <= 0:
         return 0.0
+    if ownership_share == 0:
+        return None
+    target /= ownership_share
     previous = 0.0
     accumulated = 0.0
     for tier in sorted(

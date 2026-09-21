@@ -35,6 +35,15 @@ class WealthMechanicsTests(unittest.TestCase):
 
         _, definitions = app.run()
         self.assertTrue((definitions["difference_df"]["difference"] == 0).all())
+        self.assertEqual(definitions["shared_inputs"]["ownership_share"], 1)
+        self.assertEqual(definitions["selected_rows"][0]["tax"], 0)
+        self.assertEqual(definitions["selected_rows"][0]["economic_wealth"], 12_400_000)
+        self.assertEqual(len(definitions["population_results"]), 9)
+        for result in definitions["population_results"]:
+            for field in ("uniform", "minimum", "maximum"):
+                self.assertEqual(result[field], 0)
+        self.assertIn("14.000 mill. NOK", definitions["marker_notes"][0])
+        self.assertIn("42.000 mill. NOK", definitions["marker_notes"][1])
         definitions["coordinated_curves"].to_dict(validate=True)
         definitions["net_balance_chart"].to_dict(validate=True)
         definitions["household_composition_chart"].to_dict(validate=True)

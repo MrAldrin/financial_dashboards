@@ -77,6 +77,29 @@ def main() -> None:
             ).to_be_visible(timeout=60_000)
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
+            # Personal share changes housing exposure, never the legacy population.
+            # Marimo number fields are text inputs; their aria-label includes markup.
+            share = page.locator(
+                'input[aria-label*="Skatteenhetens samlede eierandel"]'
+            )
+            share.fill("50")
+            share.press("Tab")
+            expect(
+                page.get_by_text(
+                    re.compile(r"Referanse:.*Sandkasse:.*Endring: \+0 kr/år")
+                )
+            ).to_be_visible(timeout=60_000)
+            expect(
+                page.get_by_text(re.compile(r"Skatteenhetens boligandel: 7,000,000 kr"))
+            ).to_be_visible()
+            expect(
+                page.get_by_text(re.compile(r"Illustrert årlig endring.*\+869\.4"))
+            ).to_be_visible()
+            share.fill("100")
+            share.press("Tab")
+            expect(
+                page.get_by_text(re.compile(r"Referanse:.*Sandkasse:.*18,000 kr/år"))
+            ).to_be_visible(timeout=60_000)
             page.get_by_role("button", name="Boligtrinn: 14 mill.", exact=True).click()
             expect(
                 page.get_by_text(
@@ -89,13 +112,67 @@ def main() -> None:
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
             expect(composition.locator("canvas")).to_be_attached()
+            # T2a worked example: whole home 16m, half-owner, no debt.
+            debt = page.locator('input[aria-label*="Skatteenhetens gjeld"]')
+            debt.fill("0")
+            debt.press("Tab")
+            home = page.locator('input[aria-label*="Hele boligens verdi"]')
+            home.fill("16000000")
+            home.press("Tab")
+            share.fill("50")
+            share.press("Tab")
+            expect(
+                page.get_by_text(
+                    re.compile(r"Referanse:.*5,500 kr/år.*Sandkasse:.*5,500 kr/år")
+                )
+            ).to_be_visible(timeout=60_000)
+            joint = page.get_by_role(
+                "switch",
+                name=re.compile("Fellesfastsetting"),
+            )
+            joint.click()
+            expect(
+                page.get_by_text(
+                    re.compile(r"Referanse:\s*0 kr/år.*Sandkasse:\s*0 kr/år")
+                )
+            ).to_be_visible(timeout=60_000)
+            share.fill("100")
+            share.press("Tab")
+            expect(
+                page.get_by_text(
+                    re.compile(r"Referanse:.*11,000 kr/år.*Sandkasse:.*11,000 kr/år")
+                )
+            ).to_be_visible(timeout=60_000)
+            share.fill("0")
+            share.press("Tab")
+            expect(
+                page.get_by_text(re.compile(r"Skatteenhetens boligandel: 0 kr"))
+            ).to_be_visible(timeout=60_000)
+            # Restore all controls exercised here to the original full-owner case.
+            joint.click()
+            share.fill("100")
+            share.press("Tab")
+            debt.fill("1600000")
+            debt.press("Tab")
+            home.fill("14000000")
+            home.press("Tab")
+            expect(
+                page.get_by_text(re.compile(r"Økonomisk nettoformue: 12,400,000 kr"))
+            ).to_be_visible(timeout=60_000)
+            expect(
+                page.get_by_text(
+                    re.compile(r"Referanse:\s*0 kr/år.*Sandkasse:\s*0 kr/år")
+                )
+            ).to_be_visible(timeout=60_000)
+            assert official_table.inner_text() == official_before
+            assert composition.get_attribute("data-data") == composition_before
             # Ensure chart canvases exist; successful HTML alone is not a WASM check.
             expect(page.locator("canvas").first).to_be_attached(timeout=60_000)
             if errors:
                 raise AssertionError("\n".join(errors))
             browser.close()
             print(
-                "WASM browser smoke passed: household composition, charts, 10m reform, 14m reset, no browser errors"
+                "WASM browser smoke passed: references, reform/reset, fractional/joint/zero ownership, population isolation, no browser errors"
             )
     finally:
         server.shutdown()
