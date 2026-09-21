@@ -199,7 +199,7 @@ Status vocabulary: pending / in progress / done / blocked / skipped with reason.
 | Plan | Prioritised autonomous queue | done | Plan written; no application code changed or checks rerun in this planning session |
 | T0 | Baseline | done | [Baseline report](../local_testing/wealth_autonomous_baseline.md): 23 tests, lint/Marimo/reference checks, 3-app export, three browser passes, 69 source hashes; defaults, sizes, timings and legal caveats recorded |
 | T1 | Objective usability/accessibility | pending | Depends on T0 |
-| T2a | Legal scenario specification | pending | Depends on T0 |
+| T2a | Legal scenario specification | done | `docs/wealth_tax_supported_scenarios.md`: archived provisions reread, worked examples and exclusions specified; one annual-resolution search returned no results |
 | T2b | Bounded ownership scenarios | pending | Depends on supported T2a cases |
 | T3a | Population modelling contract | pending | Depends on T0/T2a |
 | T3b | Multi-profile engine | pending | Depends on T3a and any used ownership support |
@@ -211,6 +211,8 @@ Status vocabulary: pending / in progress / done / blocked / skipped with reason.
 | T8 | Human-review packet | pending | Final task |
 
 ### Completion log
+
+- T2a — 21 September 2026: specified full/fractional individual and qualifying-joint units, whole-property-first allocation, zero-share behavior, worked arithmetic, input validation and population isolation in `docs/wealth_tax_supported_scenarios.md`. Reread archived statutory/agency/handbook provisions; obsolete handbook 10m threshold is not reused. One targeted annual-resolution search returned no results; no new evidence archived, rate-resolution gap retained. No app changes in this substep. Next: authorised T2b (T1 remains pending).
 
 - T0 — 21 September 2026: created `local_testing/wealth_autonomous_baseline.md`; no application/financial-logic changes. All existing checks passed, including three real WASM browser runs (14.19/15.49/14.33 seconds whole-test wall time). Recorded clean export size separately from stale `_site` contents, local/exporter Marimo version mismatch, default and preset numeric outputs, and conservative app provenance versus the enacted-law audit. Full timing conditions, commands, results and untested scope are in the report. No session restart, bookmark movement, push or integration. Next ready task: T1.
 
