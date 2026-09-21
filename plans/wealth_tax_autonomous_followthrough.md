@@ -197,7 +197,7 @@ Status vocabulary: pending / in progress / done / blocked / skipped with reason.
 | ID | Task | Status | Completion evidence / next action |
 |---|---|---|---|
 | Plan | Prioritised autonomous queue | done | Plan written; no application code changed or checks rerun in this planning session |
-| T0 | Baseline | pending | First task for executing agent |
+| T0 | Baseline | done | [Baseline report](../local_testing/wealth_autonomous_baseline.md): 23 tests, lint/Marimo/reference checks, 3-app export, three browser passes, 69 source hashes; defaults, sizes, timings and legal caveats recorded |
 | T1 | Objective usability/accessibility | pending | Depends on T0 |
 | T2a | Legal scenario specification | pending | Depends on T0 |
 | T2b | Bounded ownership scenarios | pending | Depends on supported T2a cases |
@@ -211,5 +211,7 @@ Status vocabulary: pending / in progress / done / blocked / skipped with reason.
 | T8 | Human-review packet | pending | Final task |
 
 ### Completion log
+
+- T0 — 21 September 2026: created `local_testing/wealth_autonomous_baseline.md`; no application/financial-logic changes. All existing checks passed, including three real WASM browser runs (14.19/15.49/14.33 seconds whole-test wall time). Recorded clean export size separately from stale `_site` contents, local/exporter Marimo version mismatch, default and preset numeric outputs, and conservative app provenance versus the enacted-law audit. Full timing conditions, commands, results and untested scope are in the report. No session restart, bookmark movement, push or integration. Next ready task: T1.
 
 - Planning session: reviewed the master plan's execution order/latest progress, the public-data feasibility report and current script/test inventory. Prioritised bounded implementation separately from unresolvable-by-coding evidence gaps. Next: T0. No application changes, fresh tests, source revalidation, commits or deployment performed.

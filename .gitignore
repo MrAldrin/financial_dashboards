@@ -183,4 +183,5 @@ test/
 devbox.lock
 
 # my extra stuff
-local_testing/
+local_testing/*
+!local_testing/wealth_autonomous_baseline.md
