@@ -29,7 +29,9 @@ The dashboard should test claims about “ordinary homeowners” with distributi
 - **Preserve the research already gathered.** Official scenario estimates and wealth cutoffs remain useful reference points and validation checks, not a restriction to preset-only interaction.
 - **Plan now, implement later.** This document is the handoff specification for a later agent; no charts, prototypes, or app code are being built in this session.
 
-**Current execution order — autonomous work before human review:**
+**Execution update — user travelling, review postponed:** Follow [the autonomous follow-through queue](wealth_tax_autonomous_followthrough.md) for the next assigned implementation steps, acceptance criteria and progress tracking. It extends the completed work with bounded usability, ownership-scenario, population-modelling and explanatory improvements before a consolidated human review. Its scoped tasks supersede the earlier blanket deferral of optional plots/calculator follow-ups below; evidence restrictions and user-controlled integration remain unchanged.
+
+**Earlier execution order — retained as historical context:**
 
 1. Audit the 2026 legal basis: enactment/effective dates, co-ownership, joint assessment, municipal-rate scope and debt-allocation exclusions. Archive evidence and identify calculator follow-ups separately.
 2. Investigate remaining open-data gaps: February/May estimate comparability, matching housing/debt components, and ownership/tax-unit mapping. Record bounded negative findings; do not invent national profiles or force reconciliation.
