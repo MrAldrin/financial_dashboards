@@ -432,7 +432,9 @@ def _(
     housing_chart,
     marker_notes,
     markers_df,
+    policy_inputs,
     selected_home,
+    shared_inputs,
     tax_df,
 ):
     selected_rows = tax_df.filter(
@@ -482,11 +484,56 @@ def _(
     coordinated_curves = alt.vconcat(
         *curve_panels, housing_chart, delta_panel, burden_panel
     ).resolve_scale(x="shared", color="shared")
+    diagnostic_rows = [
+        selected_tax_diagnostics(
+            tax_df.filter(pl.col("Scenario") == policy["scenario_name"]),
+            selected_home.value,
+            policy,
+            shared_inputs,
+        )
+        for policy in policy_inputs
+    ]
+    diagnostic_table = pl.DataFrame(
+        {
+            "Størrelse": [key for key in diagnostic_rows[0] if key != "Politikk"],
+            "2026-referanse": [
+                round(value) if value is not None else None
+                for key, value in diagnostic_rows[0].items()
+                if key != "Politikk"
+            ],
+            "Din sandkasse": [
+                round(value) if value is not None else None
+                for key, value in diagnostic_rows[1].items()
+                if key != "Politikk"
+            ],
+        }
+    )
     mo.vstack(
         [
             selected_summary,
             coordinated_curves,
-            mo.accordion({"Hvor knekker kurvene?": mo.md("\n\n".join(marker_notes))}),
+            mo.accordion(
+                {
+                    "Vis valgt boligs verdsetting, skattebånd og marginal endring": mo.vstack(
+                        [
+                            mo.md(
+                                "Beløpene gjelder **skatteenheten** ved valgt *hel* boligverdi. "
+                                "Verdsetting skjer før eierandelen fordeles; andre eiendeler og "
+                                "gjeld er allerede fordelt. Skattegrunnlag før nullgulv = "
+                                "boligformuesverdi + andre eiendeler − gjeld − personfradrag. "
+                                "Begge skattebånd beregnes på samme nettoformue; fradraget trekkes "
+                                "**bare én gang**. Marginalene viser ekstra årlig skatt i kroner "
+                                "ved +1 mill. kr *hel* boligverdi, innen et lineært stykke, ikke "
+                                "skatt på en faktisk 1m-endring som krysser flere grenser. "
+                                "Ved knekk kan venstre og høyre avvike; regningen hopper ikke. "
+                                "Tom venstre/høyre betyr utenfor vist område."
+                            ),
+                            mo.ui.table(diagnostic_table, selection=None, pagination=False),
+                        ]
+                    ),
+                    "Hvor knekker kurvene?": mo.md("\n\n".join(marker_notes)),
+                }
+            ),
         ]
     )
     return coordinated_curves, selected_rows
@@ -1507,6 +1554,64 @@ def create_curve_panel(
     return (lines + boundaries + selected_rule + dots + zero).properties(
         width=950, height=160
     )
+
+
+@app.function
+def selected_tax_diagnostics(
+    frame: pl.DataFrame, selected: float, policy: dict, household: dict
+) -> dict:
+    """Explain the selected unit's bill and exact one-sided linear slopes.
+
+    The calculator inserts each valuation/allowance/upper-band kink in its grid;
+    adjacent points therefore give local slopes, not sampled tax jumps.
+    """
+    rows = frame.sort("market_value").to_dicts()
+    index = next(
+        (i for i, row in enumerate(rows) if row["market_value"] == selected), None
+    )
+    if index is None:
+        raise ValueError("Selected whole-home value must be in the tax grid")
+    row = rows[index]
+    multiplier = 2 if household["is_couple"] else 1
+    allowance = policy["base_deduction"] * multiplier
+    upper = 21_500_000 * multiplier
+    regular = (
+        min(max(row["net_wealth"] - allowance, 0), upper - allowance)
+        * policy["tax_rate"]
+        / 100
+    )
+    higher = max(row["net_wealth"] - upper, 0) * policy["upper_tax_rate"] / 100
+
+    def marginal(neighbour: dict | None) -> float | None:
+        if neighbour is None:
+            return None
+        return (
+            (neighbour["tax"] - row["tax"])
+            / (neighbour["market_value"] - selected)
+            * 1_000_000
+        )
+
+    if abs(regular + higher - row["tax"]) > 1e-5:
+        raise ValueError("Tax-band breakdown does not reproduce calculated tax")
+    return {
+        "Politikk": policy["scenario_name"],
+        "Hel bolig (kr)": selected,
+        "Skatteenhetens boligverdi (kr)": row["valuation"],
+        "Andre eiendeler (kr)": household["other_net_wealth"],
+        "Gjeld (kr)": household["mortgage_debt"],
+        "Netto skatteformue før fradrag (kr)": row["net_wealth"],
+        "Personfradrag (kr)": allowance,
+        "Grunnlag før nullgulv (kr)": row["tax_base"],
+        "Ordinært bånd (kr/år)": regular,
+        "Øvre bånd (kr/år)": higher,
+        "Skatt (kr/år)": row["tax"],
+        "Venstre marginal (kr per +1 mill.)": marginal(
+            rows[index - 1] if index else None
+        ),
+        "Høyre marginal (kr per +1 mill.)": marginal(
+            rows[index + 1] if index + 1 < len(rows) else None
+        ),
+    }
 
 
 @app.function

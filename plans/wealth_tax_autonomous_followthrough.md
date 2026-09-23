@@ -205,12 +205,14 @@ Status vocabulary: pending / in progress / done / blocked / skipped with reason.
 | T3b | Multi-profile engine | done | Typed, validated property/unit profiles and exact model totals/differences; [contract](../docs/wealth_population_scenarios.md) and 5 focused tests; 34-test suite, Ruff, Marimo, references, WASM export and browser smoke passed; UI remains T3c |
 | T3c | Advanced scenario UI | done | Expandable four-assumption comparison; 35 tests, Ruff, Marimo, references, three exports, browser reform/reset/share/tail and static-reference checks passed; final screenshot run in T7 |
 | T4 | Age composition reference | done | Archived 10317 selector beside 10316; 38 tests, generator/hashes, Ruff/Marimo, exports and desktop/mobile browser selection/reform passed |
-| T5 | Educational diagnostics | pending | After T1 and applicable T2 changes; implement separately |
-| T6 | New-lead evidence check | pending | Skip if no concrete new lead |
+| T5 | Educational diagnostics | done | Selected-value band reconciliation and kink-aware left/right marginal slopes in compact accordion; optional heatmap deferred (extra grid/density, no need for correctness) |
+| T6 | New-lead evidence check | skipped with reason | No concrete new public lead; bounded existing evidence gaps unchanged; no redundant search |
 | T7 | Integrated verification | pending | After implementation queue resolves |
 | T8 | Human-review packet | pending | Final task |
 
 ### Completion log
+
+- T5/T6 — 23 September 2026: added selected-unit breakdown of whole-home value, allocated taxable housing, already-unit-level assets/debt, net wealth, allowance, unclipped base and regular/upper tax contributions, with exact local one-sided slopes from the kink-aware calculator grid. The compact accordion preserves full curves; optional heatmap deliberately deferred rather than adding a two-dimensional grid and another chart without a demonstrated need. Added focused onset/joint upper-band/continuity/edge tests and actual browser reform/reset, mobile visibility checks. Verification: 40 tests, Ruff, Marimo, references, all three WASM exports and Chrome desktop/mobile smoke passed (initial 13.13s, first preset 0.96s in warm unthrottled run; no captured browser errors). T6 was not reopened: no new identifiable public source justifies repeating completed capped searches. Next: T7 integrated verification.
 
 - T4 — 23 September 2026: added 2024 age-of-main-earner 10317 means/counts, generated offline from archived source, as a selector for the existing 10316 chart (not a second default chart). Chart and descriptions retain signed debt, national row only for validation, all-household denominators, mixed valuation, rounding, and cross-section/nonjoin caveats; no tax-profile mapping. Added source-cell, accounting, invalid-data and schema tests; browser selects age, checks 35 bars/7 negative debts, checks fixed specification through policy reform, and returns to household types. Verification: 38 tests, Ruff, Marimo, generator checks (source hashes and three embedded references), all three WASM exports, Chrome desktop/mobile browser passed (initial render 23.62s; first preset update 0.95s in warm local run). Target HTML 283,842 bytes; no new runtime package or fetch. Next: T5 educational diagnostics.
 

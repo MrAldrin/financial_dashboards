@@ -99,20 +99,35 @@ def main() -> None:
             expect(scenario_table).to_contain_text("1,712,400")
             expect(scenario_table).to_contain_text("1,887,270")
             page.screenshot(path=str(root / "local_testing/wealth_t3c_desktop.png"))
+            page.get_by_text(
+                "Vis valgt boligs verdsetting, skattebånd og marginal endring",
+                exact=True,
+            ).click()
+            diagnostics = page.get_by_role("table").filter(
+                has_text="Grunnlag før nullgulv"
+            )
+            expect(diagnostics).to_be_visible(timeout=60_000)
+            expect(
+                diagnostics.get_by_role("row", name=re.compile("Høyre marginal"))
+            ).to_contain_text("7,000")
             composition_before = composition.get_attribute("data-data")
             spec = json.loads(json.loads(composition_before))
             bars = spec["datasets"][spec["layer"][0]["data"]["name"]]
             assert len(bars) == 75
             assert sum(row["amount"] < 0 for row in bars) == 15
             assert spec["layer"][1]["encoding"]["y"]["field"] == "net_wealth"
-            group_selector = page.get_by_role("combobox", name="Vis formue etter (SSB 2024)")
+            group_selector = page.get_by_role(
+                "combobox", name="Vis formue etter (SSB 2024)"
+            )
             group_selector.select_option(label="Alder på hovedinntektstaker")
             age_chart = page.locator('marimo-mime-renderer[data-data*="SSB 10317:"]')
             expect(age_chart.locator("canvas")).to_be_attached(timeout=60_000)
             age_before = age_chart.get_attribute("data-data")
             age_spec = json.loads(json.loads(age_before))
             age_bars = age_spec["datasets"][age_spec["layer"][0]["data"]["name"]]
-            assert len(age_bars) == 35 and sum(row["amount"] < 0 for row in age_bars) == 7
+            assert (
+                len(age_bars) == 35 and sum(row["amount"] < 0 for row in age_bars) == 7
+            )
             group_selector.select_option(label="Husholdningstype")
             expect(composition.locator("canvas")).to_be_attached(timeout=60_000)
             assert composition.get_attribute("data-data") == composition_before
@@ -130,6 +145,9 @@ def main() -> None:
             assert composition.get_attribute("data-data") == composition_before
             start_row = scenario_table.get_by_role("row", name=re.compile("Startmiks:"))
             expect(start_row).to_contain_text("761.4", timeout=120_000)
+            expect(
+                diagnostics.locator("tr").filter(has_text="Skatt (kr/år)")
+            ).to_contain_text("18,000", timeout=60_000)
             group_selector.select_option(label="Alder på hovedinntektstaker")
             expect(age_chart.locator("canvas")).to_be_attached(timeout=60_000)
             assert age_chart.get_attribute("data-data") == age_before
@@ -170,7 +188,12 @@ def main() -> None:
             ).to_be_visible(timeout=60_000)
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
-            expect(start_row).to_have_text(re.compile(r"1,002\.9.*1,002\.9.*0$"), timeout=120_000)
+            expect(start_row).to_have_text(
+                re.compile(r"1,002\.9.*1,002\.9.*0$"), timeout=120_000
+            )
+            expect(
+                diagnostics.locator("tr").filter(has_text="Skatt (kr/år)")
+            ).to_have_text(re.compile(r".*0.*0$"), timeout=60_000)
             expect(composition.locator("canvas")).to_be_attached()
             expect(
                 page.get_by_text("Status: samme politikk som 2026-referansen")
@@ -259,7 +282,9 @@ def main() -> None:
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
             # Tail is an explicit assumption; both models respond, references do not.
-            tail = page.locator('input[aria-label*="Antatt antall boliger over 30 mill."]')
+            tail = page.locator(
+                'input[aria-label*="Antatt antall boliger over 30 mill."]'
+            )
             tail.fill("0")
             tail.press("Tab")
             expect(scenario_table).to_contain_text("1,711,400", timeout=60_000)
@@ -273,6 +298,8 @@ def main() -> None:
             expect(preset).to_be_visible()
             assert_no_page_overflow(page)
             expect(scenario_table).to_be_visible()
+            diagnostics.scroll_into_view_if_needed()
+            page.screenshot(path=str(root / "local_testing/wealth_t5_mobile.png"))
             scenario_table.scroll_into_view_if_needed()
             page.screenshot(path=str(root / "local_testing/wealth_t3c_mobile.png"))
             # A hidden/clipped hstack can leave page width normal while inputs
