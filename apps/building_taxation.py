@@ -1208,14 +1208,28 @@ def _(reference):
 
 @app.cell
 def _():
-    household_reference = household_composition_reference()
+    composition_group = mo.ui.dropdown(
+        options=["Husholdningstype", "Alder på hovedinntektstaker"],
+        value="Husholdningstype",
+        label="Vis formue etter (SSB 2024)",
+    )
+    composition_group
+    return (composition_group,)
+
+
+@app.cell
+def _(composition_group):
+    by_age = composition_group.value == "Alder på hovedinntektstaker"
+    composition_reference = (
+        age_composition_reference() if by_age else household_composition_reference()
+    )
     household_composition_chart = create_household_composition_chart(
-        household_reference
+        composition_reference
     )
     mo.vstack(
         [
-            mo.md("""
-        ### Formuens sammensetning etter husholdningstype — 2024
+            mo.md(f"""
+        ### Formuens sammensetning etter {"alder på hovedinntektstaker" if by_age else "husholdningstype"} — 2024
 
         **Gjennomsnitt for alle husholdninger i hver type, også dem som ikke eier bolig.**
         Husholdningstype er ikke formuesrang. Dette er ikke typiske faktiske husholdninger.
@@ -1226,8 +1240,8 @@ def _():
         Tallene er faste referanser og endres ikke av skattevalgene over.
         """),
             household_composition_chart,
-            mo.md("""
-        [SSB 10316](https://www.ssb.no/statbank/table/10316), 2024, korrigert 12.02.2026;
+            mo.md(f"""
+        [SSB {composition_reference["table"]}](https://www.ssb.no/statbank/table/{composition_reference["table"]}), 2024, korrigert 12.02.2026;
         kildesnapshot 20.09.2026. Studenthusholdninger og aleneboende barn under 18 år
         er utelatt. Landstotalen på **2 616 826 husholdninger** er ikke en ekstra type.
         **Avrundede gjennomsnitt beholdes:** komponentenes sum kan avvike fra publisert
@@ -1235,7 +1249,7 @@ def _():
         """),
             mo.accordion(
                 {
-                    "Definisjoner og begrensninger — husholdningstype": mo.md("""
+                    "Definisjoner og begrensninger — statistiske husholdninger": mo.md("""
         Andre realaktiva = beregnet realkapital minus primærbolig minus sekundærbolig.
         Total realkapital stables derfor ikke i tillegg til delene.
         **Blandet verdsettelse:** bolig, næringseiendom, skog og gårdsbruk bruker
@@ -1249,7 +1263,11 @@ def _():
         Par omfatter også samboere og er ikke automatisk én felles skatteenhet.
         Gruppemidlene lastes ikke inn i kalkulatoren eller brukes som nasjonale vekter:
         **skatt på gjennomsnittsformuen er ikke gjennomsnittlig skatt**.
-        Kilden gir ikke fordelingen innad i gruppene eller bolig og gjeld etter formuesdesil.
+        Aldersgruppene er definert ved **hovedinntektstakerens alder**, ikke alle
+        beboeres alder; snitt fra ett år viser ikke en livsløpseffekt. Aldersgruppene
+        kan ikke krysskobles med husholdningstyper eller formuesdesiler som om de var
+        observerte personer. Kilden gir ikke fordelingen innad i gruppene eller bolig
+        og gjeld etter formuesdesil.
         [SSBs definisjoner](https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/statistikk/inntekts-og-formuesstatistikk-for-husholdninger).
         """)
                 }
@@ -1280,10 +1298,15 @@ def create_household_composition_chart(reference: dict) -> alt.LayerChart:
         )
         .with_columns(pl.col("component").replace_strict(components))
     )
+    by_age = reference["table"] == "10317"
     x = alt.X(
         "label:N",
         sort=frame["label"].to_list(),
-        title="Husholdningstype (SSBs rekkefølge, ikke formuesrang)",
+        title=(
+            "Hovedinntektstakerens alder"
+            if by_age
+            else "Husholdningstype (SSBs rekkefølge, ikke formuesrang)"
+        ),
         axis=alt.Axis(labelAngle=-45, labelLimit=280),
     )
     bars = (
@@ -1340,7 +1363,9 @@ def create_household_composition_chart(reference: dict) -> alt.LayerChart:
     return (bars + markers + zero).properties(
         width=950,
         height=300,
-        title="SSB 10316: husholdningstype — eiendeler, gjeld og nettoformue (2024)",
+        title=(
+            f"SSB {reference['table']}: {'alder' if by_age else 'husholdningstype'} — eiendeler, gjeld og nettoformue (2024)"
+        ),
     )
 
 
@@ -2118,6 +2143,128 @@ def household_composition_reference() -> dict:
 
 
 # END GENERATED HOUSEHOLD COMPOSITION
+
+
+# BEGIN GENERATED AGE COMPOSITION
+@app.function
+def age_composition_reference() -> dict:
+    """Public aggregates; generated offline by scripts/build_wealth_reference.py."""
+    return {
+        "schema_version": 1,
+        "snapshot": "2026-09-20-feasibility",
+        "table": "10317",
+        "year": 2024,
+        "updated": "2026-02-12T07:00:00Z",
+        "national": {
+            "code": "999D",
+            "label": "Alle aldre",
+            "primary_housing": 3151100,
+            "secondary_housing": 349000,
+            "real_assets": 3797700,
+            "financial_assets": 1850000,
+            "debt": 1757300,
+            "net_wealth": 3890400,
+            "households": 2616826,
+            "other_real_assets": 297600,
+            "accounting_difference": 0,
+        },
+        "groups": [
+            {
+                "code": "-24",
+                "label": "Under 25 år",
+                "primary_housing": 839500,
+                "secondary_housing": 82100,
+                "real_assets": 994400,
+                "financial_assets": 502500,
+                "debt": 807900,
+                "net_wealth": 689000,
+                "households": 95261,
+                "other_real_assets": 72800,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "25-34",
+                "label": "25-34 år",
+                "primary_housing": 2198500,
+                "secondary_housing": 193500,
+                "real_assets": 2521900,
+                "financial_assets": 916700,
+                "debt": 2087500,
+                "net_wealth": 1351000,
+                "households": 449137,
+                "other_real_assets": 129900,
+                "accounting_difference": 100,
+            },
+            {
+                "code": "35-44",
+                "label": "35-44 år",
+                "primary_housing": 3175100,
+                "secondary_housing": 296100,
+                "real_assets": 3717000,
+                "financial_assets": 1236200,
+                "debt": 2575500,
+                "net_wealth": 2377700,
+                "households": 471027,
+                "other_real_assets": 245800,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "45-54",
+                "label": "45-54 år",
+                "primary_housing": 3592800,
+                "secondary_housing": 435300,
+                "real_assets": 4409400,
+                "financial_assets": 2081100,
+                "debt": 2404200,
+                "net_wealth": 4086300,
+                "households": 463879,
+                "other_real_assets": 381300,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "55-66",
+                "label": "55-66 år",
+                "primary_housing": 3634300,
+                "secondary_housing": 518600,
+                "real_assets": 4610800,
+                "financial_assets": 2661500,
+                "debt": 1659800,
+                "net_wealth": 5612500,
+                "households": 527130,
+                "other_real_assets": 457900,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "67-79",
+                "label": "67-79 år",
+                "primary_housing": 3557700,
+                "secondary_housing": 396800,
+                "real_assets": 4316400,
+                "financial_assets": 2575800,
+                "debt": 754800,
+                "net_wealth": 6137400,
+                "households": 414257,
+                "other_real_assets": 361900,
+                "accounting_difference": 0,
+            },
+            {
+                "code": "80+",
+                "label": "80 år eller eldre",
+                "primary_housing": 3195100,
+                "secondary_housing": 201100,
+                "real_assets": 3546600,
+                "financial_assets": 1855800,
+                "debt": 346500,
+                "net_wealth": 5055900,
+                "households": 196135,
+                "other_real_assets": 150400,
+                "accounting_difference": 0,
+            },
+        ],
+    }
+
+
+# END GENERATED AGE COMPOSITION
 
 
 if __name__ == "__main__":

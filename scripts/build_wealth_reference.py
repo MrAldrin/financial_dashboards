@@ -151,6 +151,79 @@ def derive_household_composition(table: dict, metadata: dict) -> dict:
     }
 
 
+def derive_age_composition(table: dict, metadata: dict) -> dict:
+    """Extract all-household means by main earner age; no taxpayer inference."""
+    if (
+        table["id"] != ["AlderHovedinn", "ContentsCode", "Tid"]
+        or table["size"] != [8, 17, 1]
+        or table["dimension"]["Tid"]["category"]["index"] != {"2024": 0}
+        or len(table["value"]) != 136
+    ):
+        raise ValueError("Unexpected 10317 dimensions or reference year")
+    groups = table["dimension"]["AlderHovedinn"]["category"]
+    metrics = table["dimension"]["ContentsCode"]["category"]
+    if list(groups["index"]) != [
+        "999D",
+        "-24",
+        "25-34",
+        "35-44",
+        "45-54",
+        "55-66",
+        "67-79",
+        "80+",
+    ]:
+        raise ValueError("Unexpected age groups")
+    fields = {
+        "primary_housing": "MarknverdiPri",
+        "secondary_housing": "MarknverdiSek",
+        "real_assets": "Realkapital",
+        "financial_assets": "SkattplKapital",
+        "debt": "Gjeld",
+        "net_wealth": "FormueNettBerekn",
+        "households": "Hushald",
+    }
+    rows = []
+    for code, position in groups["index"].items():
+        row = {"code": code, "label": groups["label"][code]}
+        for field, metric in fields.items():
+            unit = metadata["dimension"]["ContentsCode"]["category"]["unit"][metric][
+                "base"
+            ]
+            if unit != ("hushald" if field == "households" else "kr"):
+                raise ValueError(f"Unexpected unit for {metric}")
+            value = table["value"][position * 17 + metrics["index"][metric]]
+            if not isinstance(value, int) or (field != "net_wealth" and value < 0):
+                raise ValueError(f"Invalid age mean/count: {code}/{metric}")
+            row[field] = value
+        row["other_real_assets"] = (
+            row["real_assets"] - row["primary_housing"] - row["secondary_housing"]
+        )
+        row["accounting_difference"] = (
+            row["real_assets"]
+            + row["financial_assets"]
+            - row["debt"]
+            - row["net_wealth"]
+        )
+        if row["other_real_assets"] < 0 or abs(row["accounting_difference"]) > 100:
+            raise ValueError(f"Unexpected age accounting: {code}")
+        rows.append(row)
+    national, *ages = rows
+    if (
+        sum(row["households"] for row in ages) != national["households"]
+        or national["households"] != 2_616_826
+    ):
+        raise ValueError("Age groups do not reconcile to national households")
+    return {
+        "schema_version": 1,
+        "snapshot": "2026-09-20-feasibility",
+        "table": "10317",
+        "year": 2024,
+        "updated": table["updated"],
+        "national": national,
+        "groups": ages,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
@@ -171,6 +244,14 @@ def main() -> None:
             derive_household_composition(
                 json.loads((COMPOSITION_SNAPSHOT / "10316.json").read_text()),
                 json.loads((COMPOSITION_SNAPSHOT / "10316-meta.json").read_text()),
+            ),
+        ),
+        (
+            "AGE COMPOSITION",
+            "age_composition_reference",
+            derive_age_composition(
+                json.loads((COMPOSITION_SNAPSHOT / "10317.json").read_text()),
+                json.loads((COMPOSITION_SNAPSHOT / "10317-meta.json").read_text()),
             ),
         ),
     ]
@@ -202,7 +283,7 @@ def main() -> None:
             _, after = rest.split(end)
             text = before + start + body + end + after
     if args.check:
-        print("Snapshot checksums and both embedded references verified")
+        print("Snapshot checksums and all three embedded references verified")
     else:
         notebook.write_text(text)
 

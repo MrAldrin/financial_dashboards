@@ -11,7 +11,7 @@ uv run scripts/build_wealth_reference.py --check
 uv run python -m unittest discover -s tests
 ```
 
-The generator uses PyMuPDF **offline only**, not as a notebook dependency. Two independently sourced functions are enclosed by named markers: the original `public_reference_data()` and schema-version-1 `household_composition_reference()` from `2026-09-20-feasibility/`. Ruff formatting is safe; verification compares values. Generation writes only the notebook, never into either immutable snapshot; it also checks the original reference against its archived `derived.json`. Raw JSON-stat2 responses preserve dimensions, codes, units, source revisions and missing values.
+The generator uses PyMuPDF **offline only**, not as a notebook dependency. Three independently sourced functions are enclosed by named markers: the original `public_reference_data()`, schema-version-1 `household_composition_reference()` (10316) and `age_composition_reference()` (10317) from `2026-09-20-feasibility/`. Ruff formatting is safe; verification compares values. Generation writes only the notebook, never into either immutable snapshot; it also checks the original reference against its archived `derived.json`. Raw JSON-stat2 responses preserve dimensions, codes, units, source revisions and missing values.
 
 ## Evidence and transformations
 
@@ -92,7 +92,7 @@ Additional claims ledger:
 
 ## Descriptive household-type composition — implemented after approval
 
-`household_composition_reference()` embeds 2024 unconditional means and counts from archived `2026-09-20-feasibility/10316.json`, with table ID, source revision, snapshot and schema version. The original reference remains separate and unchanged. No new download, copied browser asset, runtime dependency or packaging change is needed. Table 10317 remains an alternative, not an additional implemented view.
+`household_composition_reference()` embeds 2024 unconditional means and counts from archived `2026-09-20-feasibility/10316.json`, with table ID, source revision, snapshot and schema version. The original reference remains separate and unchanged. No new download, copied browser asset, runtime dependency or packaging change is needed. The same chart can now show archived 10317 means by main earner's age instead of 10316 household types, via a selector (not an additional default chart). The seven disjoint age groups reconcile to the same 2,616,826 national households; 10317's published means include nonowners and retain up to NOK 100 rounding residuals. The age and type marginal groups cannot be cross-joined into observed tax units. A cross-sectional age comparison is not a lifecycle effect. Both charts remain static through policy changes and never populate the calculator.
 
 The chart shows the 15 disjoint household types in SSB order, **not wealth rank**. The national row (`50`) is retained separately for validation, never stacked or added as a sixteenth group. Type counts sum to 2,616,826. The five plotted components are primary housing, secondary housing, **derived other real assets = real capital − primary − secondary housing**, financial assets and negative total debt. Total real capital is retained for auditing but never stacked alongside its subcomponents. Published net wealth is an independent diamond; its tooltip includes household count and `component sum − published net wealth`. The source's −100/0/+100 NOK discrepancies are preserved, not calibrated away.
 

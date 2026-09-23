@@ -105,6 +105,17 @@ def main() -> None:
             assert len(bars) == 75
             assert sum(row["amount"] < 0 for row in bars) == 15
             assert spec["layer"][1]["encoding"]["y"]["field"] == "net_wealth"
+            group_selector = page.get_by_role("combobox", name="Vis formue etter (SSB 2024)")
+            group_selector.select_option(label="Alder på hovedinntektstaker")
+            age_chart = page.locator('marimo-mime-renderer[data-data*="SSB 10317:"]')
+            expect(age_chart.locator("canvas")).to_be_attached(timeout=60_000)
+            age_before = age_chart.get_attribute("data-data")
+            age_spec = json.loads(json.loads(age_before))
+            age_bars = age_spec["datasets"][age_spec["layer"][0]["data"]["name"]]
+            assert len(age_bars) == 35 and sum(row["amount"] < 0 for row in age_bars) == 7
+            group_selector.select_option(label="Husholdningstype")
+            expect(composition.locator("canvas")).to_be_attached(timeout=60_000)
+            assert composition.get_attribute("data-data") == composition_before
             update_started = perf_counter()
             preset.click()
             expect(
@@ -119,6 +130,11 @@ def main() -> None:
             assert composition.get_attribute("data-data") == composition_before
             start_row = scenario_table.get_by_role("row", name=re.compile("Startmiks:"))
             expect(start_row).to_contain_text("761.4", timeout=120_000)
+            group_selector.select_option(label="Alder på hovedinntektstaker")
+            expect(age_chart.locator("canvas")).to_be_attached(timeout=60_000)
+            assert age_chart.get_attribute("data-data") == age_before
+            group_selector.select_option(label="Husholdningstype")
+            expect(composition.locator("canvas")).to_be_attached(timeout=60_000)
             # Personal share changes housing exposure, never the legacy population.
             # Marimo number fields are text inputs; their aria-label includes markup.
             share = page.locator(
