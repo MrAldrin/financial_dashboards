@@ -98,7 +98,10 @@ def main() -> None:
             expect(scenario_table).to_be_visible(timeout=120_000)
             expect(scenario_table).to_contain_text("1,712,400")
             expect(scenario_table).to_contain_text("1,887,270")
-            page.screenshot(path=str(root / "local_testing/wealth_t3c_desktop.png"))
+            page.screenshot(
+                path=str(root / "local_testing/wealth_t3c_desktop.png"),
+                animations="disabled",
+            )
             page.get_by_text(
                 "Vis valgt boligs verdsetting, skattebånd og marginal endring",
                 exact=True,
@@ -299,9 +302,15 @@ def main() -> None:
             assert_no_page_overflow(page)
             expect(scenario_table).to_be_visible()
             diagnostics.scroll_into_view_if_needed()
-            page.screenshot(path=str(root / "local_testing/wealth_t5_mobile.png"))
+            page.screenshot(
+                path=str(root / "local_testing/wealth_t5_mobile.png"),
+                animations="disabled",
+            )
             scenario_table.scroll_into_view_if_needed()
-            page.screenshot(path=str(root / "local_testing/wealth_t3c_mobile.png"))
+            page.screenshot(
+                path=str(root / "local_testing/wealth_t3c_mobile.png"),
+                animations="disabled",
+            )
             # A hidden/clipped hstack can leave page width normal while inputs
             # extend beyond the visible viewport. Check actual control bounds.
             for control in (debt, home, share, allowance, add, preset):

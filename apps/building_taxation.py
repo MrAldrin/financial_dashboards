@@ -781,6 +781,7 @@ def _(policy_inputs, reference, tail_count_ui, tail_upper_ui):
                     mo.ui.table(
                         pl.DataFrame(scenario_rows),
                         selection=None,
+                        pagination=False,
                         show_column_summaries=False,
                         show_data_types=False,
                         show_search=False,
