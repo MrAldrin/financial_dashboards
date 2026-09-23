@@ -2,11 +2,11 @@
 
 ## Start here
 
-1. **Execute next:** [Autonomous follow-through](wealth_tax_autonomous_followthrough.md). Prioritised tasks, dependencies, validation and progress tracking while the user cannot perform human review. Start at T0.
+1. **Next human task (backlog for 24 September 2026 or when available):** [Review the finished wealth-tax dashboard](wealth_tax_human_review.md). Walkthrough, screenshots, four acceptance decisions and verification are collected there. **Pending human review**; do not integrate or deploy before approval.
 2. **Understand the foundation:** [Research and implementation record](wealth_tax_evidence_and_dashboard_research.md). Original objectives, completed milestones, source register and unresolved evidence gaps. Historical sequencing is superseded by the follow-through queue.
 3. **Check source definitions:** [Wealth data guide](../data/wealth/README.md), [legal audit](../data/wealth/legal_audit_2026.md), [official-estimate comparison](../data/wealth/official_estimate_reconciliation_2026.md) and [public-data feasibility](../data/wealth/public_data_feasibility_2026.md).
 
-The future human-review packet will be created by T8; it does not exist yet. Implementation completion is not human acceptance or deployment approval.
+[Autonomous follow-through](wealth_tax_autonomous_followthrough.md) T0–T8 is complete. Implementation completion is not human acceptance or deployment approval.
 
 ## Retired planning documents
 
@@ -34,3 +34,4 @@ Removed during the documentation cleanup at the user's request. Their full text 
 - [x] Remove obsolete plans and update the surviving reference and root navigation.
 - [x] Clarify that joint-assessment mechanics already exist and should be validated/extended, not rebuilt.
 - [x] Validate all 14 relative Markdown links across the root README and three surviving plan documents; check new/rewritten documents for trailing whitespace and inspect both JJ diffs. Documentation-only changes: application tests and WASM/browser checks were not rerun.
+- [ ] Backlog (24 September 2026 or when available): human acceptance of the [completed dashboard](wealth_tax_human_review.md); no implementation, deployment or integration before the user's review.
