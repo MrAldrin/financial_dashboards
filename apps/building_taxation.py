@@ -182,10 +182,12 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
             )
         if not is_last:
             remove_btn = mo.ui.button(
-                label="✖", on_change=lambda _, idx=i: remove_tier(idx), kind="neutral"
+                label=f"Fjern trinn {i + 1}",
+                on_change=lambda _, idx=i: remove_tier(idx),
+                kind="neutral",
             )
             inputs.append(remove_btn)
-        tier_rows.append(mo.hstack(inputs, justify="start", align="center"))
+        tier_rows.append(mo.hstack(inputs, justify="start", align="center", wrap=True))
     add_btn = mo.ui.button(
         label="Legg til verdsettelsesgrense", on_change=lambda _: add_tier()
     )
@@ -203,10 +205,16 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
             for limit in (10, 14, 20)
         ],
         justify="start",
+        wrap=True,
     )
     valuation_ui = mo.vstack(
         [
             mo.md("#### Verdsettelsestrinn (sorteres etter grense):"),
+            mo.md(
+                "**Boligtrinn-knappene endrer bare verdsettelsestrinn** (grense og andel); "
+                "personlig økonomi, fradrag og skattesatser beholdes. "
+                "«Boligtrinn: 14 mill.» er ikke en nullstilling av hele sandkassen."
+            ),
             tier_presets,
             *tier_rows,
             add_btn,
@@ -220,6 +228,7 @@ def _(
     annual_income,
     base_deduction,
     chart_max,
+    get_tiers,
     is_couple,
     mortgage_debt,
     other_net_wealth,
@@ -246,10 +255,27 @@ def _(
                 "Andre eiendeler, gjeld og inntekt er allerede fordelt og skaleres ikke med eierandelen."
             ),
             ownership_share_ui,
-            mo.hstack([mortgage_debt, other_net_wealth, annual_income]),
+            mo.hstack([mortgage_debt, other_net_wealth, annual_income], wrap=True),
             selected_home,
             mo.md("### Politisk sandkasse — sammenlignet med fast 2026-referanse"),
-            mo.hstack([base_deduction, tax_rate_ui, upper_rate_ui]),
+            mo.md(
+                "**Status: "
+                + (
+                    "samme politikk som 2026-referansen"
+                    if get_tiers()
+                    == [
+                        {"limit": 14_000_000, "rate": 25.0},
+                        {"limit": None, "rate": 70.0},
+                    ]
+                    and base_deduction.value == 1_900_000
+                    and tax_rate_ui.value == 1.0
+                    and upper_rate_ui.value == 1.1
+                    else "egendefinert politikk"
+                )
+                + "**. Personlig økonomi gjelder begge kurver; boligtrinn-knappene "
+                "endrer bare sandkassens boligtrinn."
+            ),
+            mo.hstack([base_deduction, tax_rate_ui, upper_rate_ui], wrap=True),
             valuation_ui,
             chart_max,
             mo.md(

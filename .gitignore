@@ -185,3 +185,5 @@ devbox.lock
 # my extra stuff
 local_testing/*
 !local_testing/wealth_autonomous_baseline.md
+!local_testing/wealth_t1_*.png
+!local_testing/wealth_t1_findings.md

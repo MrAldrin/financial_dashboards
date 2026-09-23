@@ -15,8 +15,21 @@ import json
 import re
 import shutil
 from threading import Thread
+from time import perf_counter
 
-from playwright.sync_api import expect, sync_playwright
+from playwright.sync_api import Page, expect, sync_playwright
+
+
+def assert_no_page_overflow(page: Page) -> None:
+    """Charts can scroll inside their containers; the document must not scroll sideways."""
+    dimensions = page.evaluate(
+        """() => ({viewport: innerWidth,
+                    document: document.documentElement.scrollWidth,
+                    body: document.body.scrollWidth})"""
+    )
+    assert (
+        max(dimensions["document"], dimensions["body"]) <= dimensions["viewport"] + 2
+    ), dimensions
 
 
 def main() -> None:
@@ -34,6 +47,7 @@ def main() -> None:
                 executable_path=shutil.which("google-chrome"), headless=True
             )
             page = browser.new_page(viewport={"width": 1400, "height": 1000})
+            started = perf_counter()
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.on(
                 "console",
@@ -62,16 +76,30 @@ def main() -> None:
             ).to_be_visible(timeout=60_000)
             composition = page.locator('marimo-mime-renderer[data-data*="SSB 10316:"]')
             expect(composition.locator("canvas")).to_be_attached(timeout=60_000)
+            initial_load = perf_counter() - started
+            assert_no_page_overflow(page)
+            page.screenshot(path=str(root / "local_testing/wealth_t1_desktop.png"))
+            expect(
+                page.get_by_text("Status: samme politikk som 2026-referansen")
+            ).to_be_visible()
+            expect(
+                page.get_by_text(
+                    "Boligtrinn-knappene endrer bare verdsettelsestrinn", exact=False
+                )
+            ).to_be_visible()
             composition_before = composition.get_attribute("data-data")
             spec = json.loads(json.loads(composition_before))
             bars = spec["datasets"][spec["layer"][0]["data"]["name"]]
             assert len(bars) == 75
             assert sum(row["amount"] < 0 for row in bars) == 15
             assert spec["layer"][1]["encoding"]["y"]["field"] == "net_wealth"
+            update_started = perf_counter()
             preset.click()
             expect(
                 page.get_by_text(re.compile(r"Referanse:.*Sandkasse:.*18,000 kr/år"))
             ).to_be_visible(timeout=180_000)
+            preset_update = perf_counter() - update_started
+            expect(page.get_by_text("Status: egendefinert politikk")).to_be_visible()
             expect(
                 page.get_by_text(re.compile(r"Illustrert årlig endring.*\+869\.4"))
             ).to_be_visible(timeout=60_000)
@@ -112,6 +140,9 @@ def main() -> None:
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
             expect(composition.locator("canvas")).to_be_attached()
+            expect(
+                page.get_by_text("Status: samme politikk som 2026-referansen")
+            ).to_be_visible()
             # T2a worked example: whole home 16m, half-owner, no debt.
             debt = page.locator('input[aria-label*="Skatteenhetens gjeld"]')
             debt.fill("0")
@@ -166,13 +197,94 @@ def main() -> None:
             ).to_be_visible(timeout=60_000)
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
+            # Changing non-housing policy survives a housing preset; the preset is not reset-all.
+            allowance = page.locator('input[aria-label*="Bunnfradrag per person"]')
+            allowance.fill("2000000")
+            allowance.press("Tab")
+            expect(page.get_by_text("Status: egendefinert politikk")).to_be_visible()
+            page.get_by_role("button", name="Boligtrinn: 10 mill.", exact=True).click()
+            page.get_by_role("button", name="Boligtrinn: 14 mill.", exact=True).click()
+            expect(allowance).to_have_value("2,000,000")
+            expect(page.get_by_text("Status: egendefinert politikk")).to_be_visible()
+            allowance.fill("1900000")
+            allowance.press("Tab")
+            expect(
+                page.get_by_text("Status: samme politikk som 2026-referansen")
+            ).to_be_visible()
+            # Add and remove a valuation tier via named, keyboard-reachable controls.
+            add = page.get_by_role("button", name="Legg til verdsettelsesgrense")
+            add.focus()
+            assert add.evaluate("el => el === el.getRootNode().activeElement")
+            add.press("Enter")
+            remove = page.get_by_role("button", name="Fjern trinn 2")
+            expect(remove).to_be_visible(timeout=60_000)
+            expect(page.get_by_text("Status: egendefinert politikk")).to_be_visible()
+            remove.click()
+            expect(remove).to_have_count(0)
+            expect(
+                page.get_by_text("Status: samme politikk som 2026-referansen")
+            ).to_be_visible()
+            assert official_table.inner_text() == official_before
+            assert composition.get_attribute("data-data") == composition_before
+            # Exercise the same exported WASM app at a narrow mobile viewport.
+            page.set_viewport_size({"width": 390, "height": 844})
+            expect(preset).to_be_visible()
+            assert_no_page_overflow(page)
+            # A hidden/clipped hstack can leave page width normal while inputs
+            # extend beyond the visible viewport. Check actual control bounds.
+            for control in (debt, home, share, allowance, add, preset):
+                control.scroll_into_view_if_needed()
+                bounds = control.bounding_box()
+                assert bounds is not None and bounds["x"] >= -2, bounds
+                assert bounds["x"] + bounds["width"] <= 392, bounds
+            page.get_by_role(
+                "heading", name=re.compile("Politisk sandkasse")
+            ).scroll_into_view_if_needed()
+            page.screenshot(path=str(root / "local_testing/wealth_t1_mobile.png"))
+            mobile_started = perf_counter()
+            preset.click()
+            expect(
+                page.get_by_text(re.compile(r"Referanse:.*Sandkasse:.*18,000 kr/år"))
+            ).to_be_visible(timeout=60_000)
+            mobile_update = perf_counter() - mobile_started
+            assert_no_page_overflow(page)
+            add.click()
+            expect(page.get_by_role("button", name="Fjern trinn 2")).to_be_visible(
+                timeout=60_000
+            )
+            page.get_by_role("button", name="Fjern trinn 2").click()
+            expect(page.get_by_role("button", name="Fjern trinn 2")).to_have_count(0)
+            page.get_by_role("button", name="Boligtrinn: 14 mill.", exact=True).click()
+            expect(
+                page.get_by_text("Status: samme politikk som 2026-referansen")
+            ).to_be_visible()
+            expect(
+                page.get_by_text(
+                    re.compile(r"Referanse:\s*0 kr/år.*Sandkasse:\s*0 kr/år")
+                )
+            ).to_be_visible(timeout=60_000)
+            assert official_table.inner_text() == official_before
+            assert composition.get_attribute("data-data") == composition_before
             # Ensure chart canvases exist; successful HTML alone is not a WASM check.
             expect(page.locator("canvas").first).to_be_attached(timeout=60_000)
+            page.get_by_role(
+                "heading", name=re.compile("Valgt bolig:")
+            ).scroll_into_view_if_needed()
+            page.screenshot(
+                path=str(root / "local_testing/wealth_t1_mobile_curves.png")
+            )
             if errors:
                 raise AssertionError("\n".join(errors))
             browser.close()
             print(
-                "WASM browser smoke passed: references, reform/reset, fractional/joint/zero ownership, population isolation, no browser errors"
+                "WASM browser smoke passed: desktop/mobile layout, labelled keyboard controls, "
+                "tier add/remove, policy-status/preset scope, ownership, fixed references, "
+                "no browser errors"
+            )
+            print(
+                f"Observed seconds: initial render {initial_load:.2f}; "
+                f"desktop preset update {preset_update:.2f}; mobile preset update {mobile_update:.2f} "
+                "(warm browser context, not performance thresholds)"
             )
     finally:
         server.shutdown()
