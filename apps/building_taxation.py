@@ -528,7 +528,15 @@ def _(
                                 "Ved knekk kan venstre og høyre avvike; regningen hopper ikke. "
                                 "Tom venstre/høyre betyr utenfor vist område."
                             ),
-                            mo.ui.table(diagnostic_table, selection=None, pagination=False),
+                            mo.ui.table(
+                                diagnostic_table,
+                                selection=None,
+                                pagination=False,
+                                show_column_summaries=False,
+                                show_data_types=False,
+                                show_search=False,
+                                show_download=False,
+                            ),
                         ]
                     ),
                     "Hvor knekker kurvene?": mo.md("\n\n".join(marker_notes)),
@@ -770,7 +778,14 @@ def _(policy_inputs, reference, tail_count_ui, tail_upper_ui):
                         "(halvt i 30–40 mill., halvt i 40 mill.–valgt haletak). Jevn prisfordeling "
                         "innen hvert intervall; ingen boliger over taket er modellert."
                     ),
-                    mo.ui.table(pl.DataFrame(scenario_rows), selection=None),
+                    mo.ui.table(
+                        pl.DataFrame(scenario_rows),
+                        selection=None,
+                        show_column_summaries=False,
+                        show_data_types=False,
+                        show_search=False,
+                        show_download=False,
+                    ),
                     mo.md(
                         "**Alle vekter, eierskap og porteføljer er antakelser:** "
                         "Under 14 mill.: 80 % én eier, 10 % kvalifisert felles skatteenhet, "
