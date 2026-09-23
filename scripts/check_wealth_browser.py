@@ -87,6 +87,18 @@ def main() -> None:
                     "Boligtrinn-knappene endrer bare verdsettelsestrinn", exact=False
                 )
             ).to_be_visible()
+            advanced = page.get_by_text(
+                "Avansert: antatte eiere og gjeld/formue per bolig", exact=True
+            )
+            expect(advanced).to_be_visible()
+            advanced.click()
+            scenario_table = page.get_by_role("table").filter(
+                has_text="Startmiks: antatt gjeld/eierskap"
+            )
+            expect(scenario_table).to_be_visible(timeout=120_000)
+            expect(scenario_table).to_contain_text("1,712,400")
+            expect(scenario_table).to_contain_text("1,887,270")
+            page.screenshot(path=str(root / "local_testing/wealth_t3c_desktop.png"))
             composition_before = composition.get_attribute("data-data")
             spec = json.loads(json.loads(composition_before))
             bars = spec["datasets"][spec["layer"][0]["data"]["name"]]
@@ -105,6 +117,8 @@ def main() -> None:
             ).to_be_visible(timeout=60_000)
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
+            start_row = scenario_table.get_by_role("row", name=re.compile("Startmiks:"))
+            expect(start_row).to_contain_text("761.4", timeout=120_000)
             # Personal share changes housing exposure, never the legacy population.
             # Marimo number fields are text inputs; their aria-label includes markup.
             share = page.locator(
@@ -123,6 +137,7 @@ def main() -> None:
             expect(
                 page.get_by_text(re.compile(r"Illustrert årlig endring.*\+869\.4"))
             ).to_be_visible()
+            expect(start_row).to_contain_text("761.4", timeout=60_000)
             share.fill("100")
             share.press("Tab")
             expect(
@@ -139,6 +154,7 @@ def main() -> None:
             ).to_be_visible(timeout=60_000)
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
+            expect(start_row).to_have_text(re.compile(r"1,002\.9.*1,002\.9.*0$"), timeout=120_000)
             expect(composition.locator("canvas")).to_be_attached()
             expect(
                 page.get_by_text("Status: samme politikk som 2026-referansen")
@@ -226,10 +242,23 @@ def main() -> None:
             ).to_be_visible()
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
+            # Tail is an explicit assumption; both models respond, references do not.
+            tail = page.locator('input[aria-label*="Antatt antall boliger over 30 mill."]')
+            tail.fill("0")
+            tail.press("Tab")
+            expect(scenario_table).to_contain_text("1,711,400", timeout=60_000)
+            tail.fill("1000")
+            tail.press("Tab")
+            expect(scenario_table).to_contain_text("1,712,400", timeout=60_000)
+            assert official_table.inner_text() == official_before
+            assert composition.get_attribute("data-data") == composition_before
             # Exercise the same exported WASM app at a narrow mobile viewport.
             page.set_viewport_size({"width": 390, "height": 844})
             expect(preset).to_be_visible()
             assert_no_page_overflow(page)
+            expect(scenario_table).to_be_visible()
+            scenario_table.scroll_into_view_if_needed()
+            page.screenshot(path=str(root / "local_testing/wealth_t3c_mobile.png"))
             # A hidden/clipped hstack can leave page width normal while inputs
             # extend beyond the visible viewport. Check actual control bounds.
             for control in (debt, home, share, allowance, add, preset):
@@ -271,7 +300,7 @@ def main() -> None:
                 "heading", name=re.compile("Valgt bolig:")
             ).scroll_into_view_if_needed()
             page.screenshot(
-                path=str(root / "local_testing/wealth_t1_mobile_curves.png")
+                path=str(root / "local_testing/wealth_t3c_mobile_curves.png")
             )
             if errors:
                 raise AssertionError("\n".join(errors))

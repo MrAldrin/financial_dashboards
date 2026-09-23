@@ -685,6 +685,79 @@ def _(policy_inputs, reference, shared_inputs, tail_count_ui, tail_upper_ui):
 
 
 @app.cell
+def _(policy_inputs, reference, tail_count_ui, tail_upper_ui):
+    # Separate from the personal controls and the legacy one-full-owner result.
+    # All alternatives use the same published bins, assumed tail and two policies.
+    scenario_names = {
+        "starting_mix": "Startmiks: antatt gjeld/eierskap",
+        "high_assets": "Dyre boliger: +2 mill. andre eiendeler",
+        "high_debt": "Dyre boliger: +2 mill. gjeld",
+        "uneven_owners": "Separate eiere: 25/75 i stedet for 50/50",
+    }
+    scenario_rows = []
+    for variant, name in scenario_names.items():
+        bins = illustrative_scenario_bins(
+            reference["housing_bins"], tail_count_ui.value, tail_upper_ui.value, variant
+        )
+        effect = weighted_scenario_effect(bins, policy_inputs)
+        scenario_rows.append(
+            {
+                "Antakelse": name,
+                "Boliger": round(effect["properties"]),
+                "Antatte skatteenheter": round(effect["tax_units"]),
+                "Referanse (mill. kr/år)": round(effect["reference"] / 1_000_000, 1),
+                "Sandkasse (mill. kr/år)": round(effect["reform"] / 1_000_000, 1),
+                "Endring (mill. kr/år)": round(effect["uniform"] / 1_000_000, 1),
+            }
+        )
+    mo.accordion(
+        {
+            "Avansert: antatte eiere og gjeld/formue per bolig": mo.vstack(
+                [
+                    mo.md(
+                        "**Illustrative årsbeløp, ikke observerte norske skatteinntekter.** "
+                        "Endring = sandkasse minus fast 2026-referanse for **samme** "
+                        "antatte befolkning i hver rad; pluss betyr mer skatt i modellen. "
+                        "Boligene er ca. 1,71 mill. rekonstruert fra Finansdepartementets "
+                        "2026-figur (0–30 mill.) pluss valgt, **uobservert** antall over 30 mill. "
+                        "(halvt i 30–40 mill., halvt i 40 mill.–valgt haletak). Jevn prisfordeling "
+                        "innen hvert intervall; ingen boliger over taket er modellert."
+                    ),
+                    mo.ui.table(pl.DataFrame(scenario_rows), selection=None),
+                    mo.md(
+                        "**Alle vekter, eierskap og porteføljer er antakelser:** "
+                        "Under 14 mill.: 80 % én eier, 10 % kvalifisert felles skatteenhet, "
+                        "10 % to separate eiere. 14–30 mill.: 60/20/20 %; antatt hale: "
+                        "50/25/25 %. Separate eiere har 50/50-andeler i startmiksen. "
+                        "Annen formue/gjeld per *bolig* er 0/1,6 mill., 0,5/2 mill. "
+                        "og 2/3 mill. i de tre prisgruppene, fordelt én gang på skatteenheter. "
+                        "Et fellesfastsatt par er én skatteenhet; to separate eiere er to, "
+                        "med hvert sitt personfradrag. Kvalifikasjon for fellesfastsetting "
+                        "er forutsatt, ikke fastslått. Tabellen teller **boliger og antatte "
+                        "skatteenheter**, ikke SSBs statistiske husholdninger."
+                    ),
+                    mo.md(
+                        "De to «dyre boliger»-radene legger til henholdsvis 2 mill. "
+                        "eiendeler eller 2 mill. gjeld per bolig ved verdi fra 14 mill.; "
+                        "de endrer derfor **samlet antatt portefølje**, ikke bare samvariasjon. "
+                        "25/75-raden beholder boligantall, enhetsmiks og samlet gjeld/eiendeler "
+                        "per bolig, men flytter andeler mellom separate eiere. "
+                        "Dette er navngitte sensitiviteter, **ikke** nedre/øvre statistiske "
+                        "grenser eller konfidensintervall. Ukjent samvariasjon, virkelig "
+                        "eierfordeling, verdier over haletaket, andre rabatter, særregler "
+                        "og atferd mangler. "
+                        "[Metode og kilder](https://github.com/MrAldrin/financial_dashboards/blob/main/docs/wealth_population_scenarios.md). "
+                        "Offisielle anslag nedenfor og SSBs husholdningsreferanser er faste, "
+                        "ikke tilpasset disse radene."
+                    ),
+                ]
+            )
+        }
+    )
+    return scenario_rows
+
+
+@app.cell
 def _():
     mo.md("""
     ### Offisielle scenarioer — faste, daterte referanser
@@ -808,6 +881,51 @@ def illustrative_property_templates(
         {"weight": weights[1], "units": [joint]},
         {"weight": weights[2], "units": [half, half.copy()]},
     ]
+
+
+@app.function
+def illustrative_scenario_bins(
+    housing_bins: list[dict], tail_count: float, tail_upper: float, variant: str
+) -> list[PropertyScenarioBin]:
+    """Keep property counts fixed while changing explicitly assumed unit profiles.
+
+    The two expensive-home variants add holdings rather than exchange equal
+    population marginals: they are sensitivity experiments, not correlation bounds.
+    """
+    if variant not in {"starting_mix", "high_assets", "high_debt", "uneven_owners"}:
+        raise ValueError("Unknown illustrative scenario")
+    if (
+        not isinstance(tail_count, (int, float))
+        or not isfinite(tail_count)
+        or tail_count < 0
+        or not isinstance(tail_upper, (int, float))
+        or not isfinite(tail_upper)
+        or tail_upper < 50_000_000
+    ):
+        raise ValueError("Invalid assumed tail")
+    bins = [
+        *housing_bins,
+        {"lower": 30_000_000, "upper": 40_000_000, "count": tail_count / 2},
+        {"lower": 40_000_000, "upper": tail_upper, "count": tail_count / 2},
+    ]
+    result: list[PropertyScenarioBin] = []
+    for band in bins:
+        templates = illustrative_property_templates(band["lower"], band["upper"])
+        if variant in ("high_assets", "high_debt") and band["lower"] >= 14_000_000:
+            # Add 2m per property, divided across separate units, never per owner.
+            key = "other_net_wealth" if variant == "high_assets" else "mortgage_debt"
+            for template in templates:
+                for unit in template["units"]:
+                    unit[key] += 2_000_000 / len(template["units"])
+        if variant == "uneven_owners":
+            separate = templates[2]["units"]
+            for unit, share in zip(separate, (0.25, 0.75), strict=True):
+                unit["ownership_share"] = share
+                # Preserve property-level holdings, reallocating by owner share.
+                unit["mortgage_debt"] *= 2 * share
+                unit["other_net_wealth"] *= 2 * share
+        result.append({**band, "templates": templates})
+    return result
 
 
 @app.function
