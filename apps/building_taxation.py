@@ -13,6 +13,24 @@ with app.setup:
     import polars as pl
     import altair as alt
     from math import isfinite
+    from bisect import bisect_right
+    from typing import TypedDict
+
+    class TaxUnitProfile(TypedDict):
+        ownership_share: float
+        is_couple: bool
+        mortgage_debt: float
+        other_net_wealth: float
+
+    class PropertyTemplate(TypedDict):
+        weight: float  # Probability conditional on the property bin, not per owner.
+        units: list[TaxUnitProfile]
+
+    class PropertyScenarioBin(TypedDict):
+        lower: float
+        upper: float
+        count: float
+        templates: list[PropertyTemplate]
 
 
 @app.cell
@@ -751,6 +769,192 @@ def weighted_policy_effect(
         minimum += band["count"] * min(delta for _, delta in points)
         maximum_effect += band["count"] * max(delta for _, delta in points)
     return {"uniform": uniform, "minimum": minimum, "maximum": maximum_effect}
+
+
+@app.function
+def illustrative_property_templates(
+    lower: float, upper: float
+) -> list[PropertyTemplate]:
+    """Assumed price-conditional profiles from docs/wealth_population_scenarios.md.
+
+    The tail is assumed, not observed. Input bins must not straddle 14m or 30m.
+    Assets and debt are already allocated to each distinct tax unit.
+    """
+    if not all(isinstance(v, (int, float)) and isfinite(v) for v in (lower, upper)):
+        raise ValueError("Finite property-bin edges required")
+    if 0 <= lower < upper <= 14_000_000:
+        weights, assets, debt = (0.8, 0.1, 0.1), 0, 1_600_000
+    elif 14_000_000 <= lower < upper <= 30_000_000:
+        weights, assets, debt = (0.6, 0.2, 0.2), 500_000, 2_000_000
+    elif 30_000_000 <= lower < upper:
+        weights, assets, debt = (0.5, 0.25, 0.25), 2_000_000, 3_000_000
+    else:
+        raise ValueError("Split bins at 14m and 30m before assigning profiles")
+    full = dict(
+        ownership_share=1.0,
+        is_couple=False,
+        mortgage_debt=debt,
+        other_net_wealth=assets,
+    )
+    joint = {**full, "is_couple": True}
+    half = {
+        **full,
+        "ownership_share": 0.5,
+        "mortgage_debt": debt / 2,
+        "other_net_wealth": assets / 2,
+    }
+    return [
+        {"weight": weights[0], "units": [full]},
+        {"weight": weights[1], "units": [joint]},
+        {"weight": weights[2], "units": [half, half.copy()]},
+    ]
+
+
+@app.function
+def weighted_scenario_effect(
+    bins: list[PropertyScenarioBin], policies: list[dict]
+) -> dict[str, float]:
+    """Exactly integrate assumed property templates, taxing each unit once.
+
+    Uniform prices within each bin; extrema condition on within-bin placement.
+    Both policies evaluate the SAME templates. Not an observed national estimate.
+    """
+
+    def nonnegative(value: object) -> bool:
+        return (
+            isinstance(value, (int, float))
+            and not isinstance(value, bool)
+            and isfinite(value)
+            and value >= 0
+        )
+
+    if len(policies) != 2 or not bins:
+        raise ValueError("Two policies and at least one property bin required")
+    for band in bins:
+        if (
+            not isinstance(band, dict)
+            or set(band) != {"lower", "upper", "count", "templates"}
+            or not isinstance(band["templates"], list)
+        ):
+            raise ValueError("Property bins need edges, count and templates")
+        for template in band["templates"]:
+            if (
+                not isinstance(template, dict)
+                or set(template) != {"weight", "units"}
+                or not isinstance(template["units"], list)
+            ):
+                raise ValueError("Templates need probability and tax units")
+            for unit in template["units"]:
+                if not isinstance(unit, dict) or set(unit) != {
+                    "ownership_share",
+                    "is_couple",
+                    "mortgage_debt",
+                    "other_net_wealth",
+                }:
+                    raise ValueError(
+                        "Tax units need share, assessment, assets and debt"
+                    )
+    if any(
+        not all(nonnegative(band[key]) for key in ("lower", "upper", "count"))
+        for band in bins
+    ):
+        raise ValueError("Finite nonnegative property bins required")
+    ordered = sorted(bins, key=lambda band: band["lower"])
+    previous_upper = 0.0
+    for band in ordered:
+        lower, upper, count = (band[key] for key in ("lower", "upper", "count"))
+        if (
+            not all(nonnegative(v) for v in (lower, upper, count))
+            or lower >= upper
+            or lower < previous_upper
+            or not band["templates"]
+        ):
+            raise ValueError("Finite, nonoverlapping property bins required")
+        previous_upper = upper
+        weights = []
+        for template in band["templates"]:
+            weight, units = template["weight"], template["units"]
+            if not nonnegative(weight) or not units:
+                raise ValueError("Each template needs a valid weight and units")
+            weights.append(weight)
+            shares = []
+            for unit in units:
+                share = unit["ownership_share"]
+                if (
+                    not nonnegative(share)
+                    or share == 0
+                    or share > 1
+                    or not isinstance(unit["is_couple"], bool)
+                    or not nonnegative(unit["mortgage_debt"])
+                    or not nonnegative(unit["other_net_wealth"])
+                ):
+                    raise ValueError("Invalid or unsupported tax-unit profile")
+                shares.append(share)
+            if not abs(sum(shares) - 1) <= 1e-9:
+                raise ValueError("Tax-unit shares must cover one property exactly")
+        if not abs(sum(weights) - 1) <= 1e-9:
+            raise ValueError("Template probabilities must sum to one per bin")
+
+    result = dict(
+        reference=0.0,
+        reform=0.0,
+        uniform=0.0,
+        minimum=0.0,
+        maximum=0.0,
+        properties=0.0,
+        tax_units=0.0,
+    )
+    for band in ordered:
+        lower, upper, count = (band[key] for key in ("lower", "upper", "count"))
+        result["properties"] += count
+        for template in band["templates"]:
+            weight = template["weight"]
+            result["tax_units"] += count * weight * len(template["units"])
+            # Each unit's calculator grid contains its own tier, allowance and
+            # upper-band crossings. Union them before interpolating the sums.
+            series = []
+            points = {float(lower), float(upper)}
+            for policy in policies:
+                policy_series = []
+                for unit in template["units"]:
+                    frame = calculate_wealth_tax_df(
+                        **policy,
+                        **unit,
+                        max_value=upper,
+                        selected_value=lower,
+                        extra_values=[lower, upper],
+                    )
+                    values = frame["market_value"].to_list()
+                    taxes = frame["tax"].to_list()
+                    points.update(v for v in values if lower <= v <= upper)
+                    policy_series.append((values, taxes))
+                series.append(policy_series)
+
+            def tax_at(value: float, policy_series: list[tuple[list, list]]) -> float:
+                total = 0.0
+                for values, taxes in policy_series:
+                    idx = min(bisect_right(values, value) - 1, len(values) - 2)
+                    left, right = values[idx], values[idx + 1]
+                    total += taxes[idx] + (taxes[idx + 1] - taxes[idx]) * (
+                        value - left
+                    ) / (right - left)
+                return total
+
+            grid = sorted(points)
+            reference = [tax_at(v, series[0]) for v in grid]
+            reform = [tax_at(v, series[1]) for v in grid]
+            delta = [b - a for a, b in zip(reference, reform, strict=True)]
+            factor = count * weight
+            for name, values in (("reference", reference), ("reform", reform)):
+                area = sum(
+                    (grid[i + 1] - grid[i]) * (values[i] + values[i + 1]) / 2
+                    for i in range(len(grid) - 1)
+                )
+                result[name] += factor * area / (upper - lower)
+            result["minimum"] += factor * min(delta)
+            result["maximum"] += factor * max(delta)
+    result["uniform"] = result["reform"] - result["reference"]
+    return result
 
 
 @app.cell
