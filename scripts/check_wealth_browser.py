@@ -78,7 +78,9 @@ def main() -> None:
             expect(composition.locator("canvas")).to_be_attached(timeout=60_000)
             initial_load = perf_counter() - started
             assert_no_page_overflow(page)
-            page.screenshot(path=str(root / "local_testing/wealth_t1_desktop.png"))
+            page.screenshot(
+                path=str(root / "local_testing/wealth_t7_revalidation_desktop.png")
+            )
             expect(
                 page.get_by_text("Status: samme politikk som 2026-referansen")
             ).to_be_visible()
@@ -99,7 +101,9 @@ def main() -> None:
             expect(scenario_table).to_contain_text("1,712,400")
             expect(scenario_table).to_contain_text("1,887,270")
             page.screenshot(
-                path=str(root / "local_testing/wealth_t3c_desktop.png"),
+                path=str(
+                    root / "local_testing/wealth_t7_revalidation_scenarios_desktop.png"
+                ),
                 animations="disabled",
             )
             page.get_by_text(
@@ -269,15 +273,22 @@ def main() -> None:
             expect(
                 page.get_by_text("Status: samme politikk som 2026-referansen")
             ).to_be_visible()
-            # Add and remove a valuation tier via named, keyboard-reachable controls.
+            # Add and remove a valuation tier through the real Tab/Enter sequence.
             add = page.get_by_role("button", name="Legg til verdsettelsesgrense")
-            add.focus()
-            assert add.evaluate("el => el === el.getRootNode().activeElement")
-            add.press("Enter")
+            reached_by_tab = False
+            for _ in range(24):
+                page.keyboard.press("Tab")
+                if add.evaluate("el => el === el.getRootNode().activeElement"):
+                    reached_by_tab = True
+                    break
+            assert reached_by_tab, "Tab navigation did not reach the add-tier button"
+            page.keyboard.press("Enter")
             remove = page.get_by_role("button", name="Fjern trinn 2")
             expect(remove).to_be_visible(timeout=60_000)
             expect(page.get_by_text("Status: egendefinert politikk")).to_be_visible()
-            remove.click()
+            page.keyboard.press("Shift+Tab")
+            assert remove.evaluate("el => el === el.getRootNode().activeElement")
+            page.keyboard.press("Enter")
             expect(remove).to_have_count(0)
             expect(
                 page.get_by_text("Status: samme politikk som 2026-referansen")
@@ -296,32 +307,73 @@ def main() -> None:
             expect(scenario_table).to_contain_text("1,712,400", timeout=60_000)
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
-            # Exercise the same exported WASM app at a narrow mobile viewport.
+            # Exercise narrow viewports. Element bounds catch clipping even when
+            # document width looks correct (for example inside overflow:hidden).
             page.set_viewport_size({"width": 390, "height": 844})
             expect(preset).to_be_visible()
             assert_no_page_overflow(page)
             expect(scenario_table).to_be_visible()
             diagnostics.scroll_into_view_if_needed()
             page.screenshot(
-                path=str(root / "local_testing/wealth_t5_mobile.png"),
+                path=str(
+                    root / "local_testing/wealth_t7_revalidation_390px_diagnostics.png"
+                ),
                 animations="disabled",
             )
             scenario_table.scroll_into_view_if_needed()
             page.screenshot(
-                path=str(root / "local_testing/wealth_t3c_mobile.png"),
+                path=str(
+                    root / "local_testing/wealth_t7_revalidation_390px_scenarios.png"
+                ),
                 animations="disabled",
             )
-            # A hidden/clipped hstack can leave page width normal while inputs
-            # extend beyond the visible viewport. Check actual control bounds.
-            for control in (debt, home, share, allowance, add, preset):
-                control.scroll_into_view_if_needed()
-                bounds = control.bounding_box()
-                assert bounds is not None and bounds["x"] >= -2, bounds
-                assert bounds["x"] + bounds["width"] <= 392, bounds
-            page.get_by_role(
+            width_specific_controls = page.locator(
+                'input[aria-label], select[aria-label], [role="switch"], '
+                '[role="slider"], button[aria-label^="Increase "], '
+                'button[aria-label^="Decrease "]'
+            )
+            policy_heading = page.get_by_role(
                 "heading", name=re.compile("Politisk sandkasse")
-            ).scroll_into_view_if_needed()
-            page.screenshot(path=str(root / "local_testing/wealth_t1_mobile.png"))
+            )
+            for width in (320, 360, 390):
+                page.set_viewport_size({"width": width, "height": 844})
+                expect(preset).to_be_visible()
+                expect(scenario_table).to_be_visible()
+                assert_no_page_overflow(page)
+                policy_heading.scroll_into_view_if_needed()
+                page.screenshot(
+                    path=str(
+                        root
+                        / f"local_testing/wealth_t7_revalidation_{width}px_controls.png"
+                    ),
+                    animations="disabled",
+                )
+                for index in range(width_specific_controls.count()):
+                    control = width_specific_controls.nth(index)
+                    if not control.is_visible():
+                        continue
+                    control.scroll_into_view_if_needed()
+                    bounds = control.bounding_box()
+                    assert bounds is not None and bounds["x"] >= -2, (width, bounds)
+                    assert bounds["x"] + bounds["width"] <= width + 2, (
+                        width,
+                        bounds,
+                        control.get_attribute("aria-label"),
+                    )
+                for control in (
+                    page.get_by_role("button", name="Legg til verdsettelsesgrense"),
+                    page.get_by_role("button", name="Fjern trinn 1"),
+                    preset,
+                    group_selector,
+                ):
+                    expect(control).to_be_visible()
+                    control.scroll_into_view_if_needed()
+                    bounds = control.bounding_box()
+                    assert bounds is not None and bounds["x"] >= -2, (width, bounds)
+                    assert bounds["x"] + bounds["width"] <= width + 2, (
+                        width,
+                        bounds,
+                    )
             mobile_started = perf_counter()
             preset.click()
             expect(
@@ -352,7 +404,7 @@ def main() -> None:
                 "heading", name=re.compile("Valgt bolig:")
             ).scroll_into_view_if_needed()
             page.screenshot(
-                path=str(root / "local_testing/wealth_t3c_mobile_curves.png")
+                path=str(root / "local_testing/wealth_t7_revalidation_390px_curves.png")
             )
             if errors:
                 raise AssertionError("\n".join(errors))

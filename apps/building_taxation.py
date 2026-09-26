@@ -85,6 +85,7 @@ def _():
         show_value=True,
         include_input=True,
         label="Hele boligens verdi (NOK)",
+        full_width=True,
     )
     annual_income = mo.ui.number(
         start=0,
