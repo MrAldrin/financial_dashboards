@@ -2,7 +2,7 @@
 
 ## Start here
 
-1. **Next human task (backlog for 24 September 2026 or when available):** [Review the finished wealth-tax dashboard](wealth_tax_human_review.md). Walkthrough, screenshots, four acceptance decisions and verification are collected there. **Pending human review**; do not integrate or deploy before approval.
+1. **Next task / top backlog priority: human review of the wealth-tax dashboard.** [Use the review packet](wealth_tax_human_review.md) for the walkthrough, screenshots, validation results and five decisions, including whether cold-disconnected startup is required before deployment. When asked for possible next tasks, recommend this review first rather than proposing more autonomous dashboard work. **Pending human acceptance**; no integration or deployment before the review.
 2. **Understand the foundation:** [Research and implementation record](wealth_tax_evidence_and_dashboard_research.md). Original objectives, completed milestones, source register and unresolved evidence gaps. Historical sequencing is superseded by the follow-through queue.
 3. **Check source definitions:** [Wealth data guide](../data/wealth/README.md), [legal audit](../data/wealth/legal_audit_2026.md), [official-estimate comparison](../data/wealth/official_estimate_reconciliation_2026.md) and [public-data feasibility](../data/wealth/public_data_feasibility_2026.md).
 
@@ -34,4 +34,4 @@ Removed during the documentation cleanup at the user's request. Their full text 
 - [x] Remove obsolete plans and update the surviving reference and root navigation.
 - [x] Clarify that joint-assessment mechanics already exist and should be validated/extended, not rebuilt.
 - [x] Validate all 14 relative Markdown links across the root README and three surviving plan documents; check new/rewritten documents for trailing whitespace and inspect both JJ diffs. Documentation-only changes: application tests and WASM/browser checks were not rerun.
-- [ ] Backlog (24 September 2026 or when available): human acceptance of the [completed dashboard](wealth_tax_human_review.md); no implementation, deployment or integration before the user's review.
+- [ ] Top backlog priority: human acceptance of the [completed dashboard](wealth_tax_human_review.md), including presentation, accessibility limitations and the cold-offline deployment criterion. Surface this first when asked what to do next; no further autonomous dashboard implementation, integration or deployment before the user's review.

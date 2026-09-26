@@ -11,7 +11,8 @@ Interactive [marimo](https://marimo.io) notebooks, exported to WebAssembly and d
 ## Plans and evidence
 
 - [Plan index](plans/README.md)
-- [Current autonomous execution queue](plans/wealth_tax_autonomous_followthrough.md)
+- **Next task:** [Human review of the wealth-tax dashboard](plans/wealth_tax_human_review.md) — autonomous follow-through is complete; review before integration or deployment.
+- [Completed autonomous execution queue](plans/wealth_tax_autonomous_followthrough.md)
 - [Wealth-tax research and implementation record](plans/wealth_tax_evidence_and_dashboard_research.md)
 - [Public data, provenance and model limitations](data/wealth/README.md)
 
