@@ -20,6 +20,8 @@ from urllib.parse import urlparse
 
 from playwright.sync_api import Browser, Locator, Page, Route, expect, sync_playwright
 
+from wealth_offline_runtime import failed_required_runtime_requests
+
 
 class QuietStaticHandler(SimpleHTTPRequestHandler):
     """Serve the export without flooding test output with routine requests."""
@@ -113,6 +115,15 @@ def assert_tab_reaches(page: Page, locator: Locator, max_tabs: int = 100) -> int
         if is_focused_in_its_tree(locator):
             return count
     raise AssertionError(f"Tab did not reach {locator} in {max_tabs} presses")
+
+
+def bounded_diagnostic(values: list[str], limit: int = 3) -> str:
+    """Keep unexpected-startup diagnostics useful without dumping full stacks."""
+    unique = list(dict.fromkeys(values))
+    details = [value[:240] for value in unique[:limit]]
+    if len(unique) > limit:
+        details.append(f"... and {len(unique) - limit} more")
+    return "; ".join(details) if details else "(none)"
 
 
 def check_accessibility_and_keyboard(page: Page) -> None:
@@ -228,11 +239,20 @@ def cold_offline_probe(browser: Browser, root: Path) -> None:
                 browser_errors.append(message.text) if message.type == "error" else None
             ),
         )
-        page.goto(
-            origin + "/apps/building_taxation.html",
-            wait_until="domcontentloaded",
-            timeout=30_000,
-        )
+        try:
+            page.goto(
+                origin + "/apps/building_taxation.html",
+                wait_until="domcontentloaded",
+                timeout=30_000,
+            )
+        except Exception as error:
+            raise AssertionError(
+                "Unexpected cold-offline navigation failure: "
+                f"{str(error)[:240]}; "
+                f"blocked off-origin URLs: {bounded_diagnostic(blocked_urls)}; "
+                f"requestfailed URLs: {bounded_diagnostic(failed_urls)}; "
+                f"browser errors: {bounded_diagnostic(browser_errors)}"
+            ) from error
         try:
             expect(
                 page.get_by_role("button", name="Boligtrinn: 10 mill.", exact=True)
@@ -242,15 +262,29 @@ def cold_offline_probe(browser: Browser, root: Path) -> None:
             offline_started = False
 
         if local_http_errors:
-            raise AssertionError(f"Local exported assets failed: {local_http_errors}")
+            raise AssertionError(
+                "Unexpected cold-offline startup failure from local exported assets: "
+                f"{bounded_diagnostic(local_http_errors)}"
+            )
         if not local_requests:
             raise AssertionError(
-                "The offline browser did not reach the local export server"
+                "Unexpected cold-offline startup failure: no local export request "
+                "reached the server; "
+                f"blocked off-origin URLs: {bounded_diagnostic(blocked_urls)}; "
+                f"requestfailed URLs: {bounded_diagnostic(failed_urls)}; "
+                f"browser errors: {bounded_diagnostic(browser_errors)}"
             )
-        if not offline_started and not blocked_urls:
+
+        failed_runtime_urls = failed_required_runtime_requests(
+            blocked_urls, failed_urls
+        )
+        if not offline_started and not failed_runtime_urls:
             raise AssertionError(
-                "Cold offline startup failed without a blocked off-origin dependency; "
-                f"browser errors: {browser_errors[:8]}"
+                "Unexpected cold-offline startup failure: no blocked required "
+                "Pyodide runtime request was also observed failing; "
+                f"blocked off-origin URLs: {bounded_diagnostic(blocked_urls)}; "
+                f"requestfailed URLs: {bounded_diagnostic(failed_urls)}; "
+                f"browser errors: {bounded_diagnostic(browser_errors)}"
             )
 
         print(
@@ -269,12 +303,16 @@ def cold_offline_probe(browser: Browser, root: Path) -> None:
             )
         else:
             print(
-                "Cold offline result: UNSUPPORTED by the current asset strategy; "
-                "local HTML loaded but the WASM startup could not complete."
+                "Cold offline result: UNSUPPORTED by current external Pyodide "
+                "runtime loading; local HTML loaded but WASM startup could not complete."
             )
-            print(f"Expected disconnected request failures: {len(failed_urls)}.")
-            for error in dict.fromkeys(browser_errors):
-                print(f"EXPECTED OFFLINE ERROR: {error[:260]}")
+            print(f"Failed required runtime requests: {len(failed_runtime_urls)}.")
+            for url in failed_runtime_urls:
+                print(f"FAILED REQUIRED RUNTIME: {url}")
+            for error in list(dict.fromkeys(browser_errors))[:3]:
+                print(f"BROWSER ERROR AFTER RUNTIME BLOCK: {error[:240]}")
+            if len(set(browser_errors)) > 3:
+                print(f"... and {len(set(browser_errors)) - 3} more browser errors")
     finally:
         if context is not None:
             context.close()
