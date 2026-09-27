@@ -39,8 +39,7 @@ def _():
     # Hva gjør boliggrensen med formuesskatten?
 
     Prøv en annen grense og se hva som skjer med skatten for en bolig og i en
-    forenklet oversikt over norske boliger. **Dette er en utforsker, ikke en
-    beregning av din egen skatt eller statens inntekter.** Vi sammenligner med
+    forenklet oversikt over norske boliger. Vi sammenligner med
     [2026-reglene](https://www.skatteetaten.no/satser/formuesskatt/).
     """)
     return
@@ -782,7 +781,9 @@ def weighted_policy_effect(
     if len(policies) != 2 or any(
         b["upper"] <= b["lower"] or b["count"] < 0 for b in bins
     ):
-        raise ValueError("Two policies and valid nonnegative property bins required")
+        raise ValueError(
+            "Two policies and valid nonnegative property bins required"
+        )
     maximum = max(b["upper"] for b in bins)
     edges = [float(b[key]) for b in bins for key in ("lower", "upper")]
     inputs = {
@@ -791,7 +792,9 @@ def weighted_policy_effect(
         "selected_value": 0,
         "extra_values": edges,
     }
-    first_pass = [calculate_wealth_tax_df(**policy, **inputs) for policy in policies]
+    first_pass = [
+        calculate_wealth_tax_df(**policy, **inputs) for policy in policies
+    ]
     inputs["extra_values"] = sorted(
         set(pl.concat(first_pass)["market_value"].to_list())
     )
@@ -884,7 +887,9 @@ def illustrative_scenario_bins(
         templates = illustrative_property_templates(band["lower"], band["upper"])
         if variant in ("high_assets", "high_debt") and band["lower"] >= 14_000_000:
             # Add 2m per property, divided across separate units, never per owner.
-            key = "other_net_wealth" if variant == "high_assets" else "mortgage_debt"
+            key = (
+                "other_net_wealth" if variant == "high_assets" else "mortgage_debt"
+            )
             for template in templates:
                 for unit in template["units"]:
                     unit[key] += 2_000_000 / len(template["units"])
@@ -1019,7 +1024,9 @@ def weighted_scenario_effect(
                     policy_series.append((values, taxes))
                 series.append(policy_series)
 
-            def tax_at(value: float, policy_series: list[tuple[list, list]]) -> float:
+            def tax_at(
+                value: float, policy_series: list[tuple[list, list]]
+            ) -> float:
                 total = 0.0
                 for values, taxes in policy_series:
                     idx = min(bisect_right(values, value) - 1, len(values) - 2)
@@ -1545,7 +1552,8 @@ def calculate_wealth_tax_df(
     if (
         not isinstance(is_couple, bool)
         or any(
-            not isinstance(v, (int, float)) or not isfinite(v) for v in numeric_inputs
+            not isinstance(v, (int, float)) or not isfinite(v)
+            for v in numeric_inputs
         )
         or not 0 <= ownership_share <= 1
         or any(v < 0 for v in (extra_values or []))
@@ -1618,7 +1626,9 @@ def calculate_wealth_tax_df(
     actual_base_ded = base_deduction * 2 if is_couple else base_deduction
     df = df.with_columns(
         tax_base=pl.col("net_wealth") - actual_base_ded,
-        economic_wealth=pl.col("owned_market_value") + other_net_wealth - mortgage_debt,
+        economic_wealth=pl.col("owned_market_value")
+        + other_net_wealth
+        - mortgage_debt,
         taxable_wealth=pl.max_horizontal(0, pl.col("net_wealth") - actual_base_ded),
     )
     # Clip each band independently: the upper band starts at net taxable wealth,
@@ -1700,7 +1710,11 @@ def public_reference_data() -> dict:
             {"group": "9", "component": "Bankinnskudd", "percent": 61},
             {"group": "10", "component": "Bankinnskudd", "percent": 19},
             {"group": "Topp 1 prosent", "component": "Bankinnskudd", "percent": 6},
-            {"group": "Topp 0,1 prosent", "component": "Bankinnskudd", "percent": 2},
+            {
+                "group": "Topp 0,1 prosent",
+                "component": "Bankinnskudd",
+                "percent": 2,
+            },
             {"group": "1", "component": "Andeler i verdipapirfond", "percent": 5},
             {"group": "2", "component": "Andeler i verdipapirfond", "percent": 5},
             {"group": "3", "component": "Andeler i verdipapirfond", "percent": 4},
@@ -1721,16 +1735,32 @@ def public_reference_data() -> dict:
                 "component": "Andeler i verdipapirfond",
                 "percent": 2,
             },
-            {"group": "1", "component": "Aksjer og andre verdipapir", "percent": 17},
+            {
+                "group": "1",
+                "component": "Aksjer og andre verdipapir",
+                "percent": 17,
+            },
             {"group": "2", "component": "Aksjer og andre verdipapir", "percent": 7},
             {"group": "3", "component": "Aksjer og andre verdipapir", "percent": 5},
             {"group": "4", "component": "Aksjer og andre verdipapir", "percent": 7},
             {"group": "5", "component": "Aksjer og andre verdipapir", "percent": 8},
             {"group": "6", "component": "Aksjer og andre verdipapir", "percent": 9},
             {"group": "7", "component": "Aksjer og andre verdipapir", "percent": 9},
-            {"group": "8", "component": "Aksjer og andre verdipapir", "percent": 10},
-            {"group": "9", "component": "Aksjer og andre verdipapir", "percent": 13},
-            {"group": "10", "component": "Aksjer og andre verdipapir", "percent": 60},
+            {
+                "group": "8",
+                "component": "Aksjer og andre verdipapir",
+                "percent": 10,
+            },
+            {
+                "group": "9",
+                "component": "Aksjer og andre verdipapir",
+                "percent": 13,
+            },
+            {
+                "group": "10",
+                "component": "Aksjer og andre verdipapir",
+                "percent": 60,
+            },
             {
                 "group": "Topp 1 prosent",
                 "component": "Aksjer og andre verdipapir",
@@ -1751,8 +1781,16 @@ def public_reference_data() -> dict:
             {"group": "8", "component": "Aksjesparekonto", "percent": 12},
             {"group": "9", "component": "Aksjesparekonto", "percent": 13},
             {"group": "10", "component": "Aksjesparekonto", "percent": 9},
-            {"group": "Topp 1 prosent", "component": "Aksjesparekonto", "percent": 5},
-            {"group": "Topp 0,1 prosent", "component": "Aksjesparekonto", "percent": 2},
+            {
+                "group": "Topp 1 prosent",
+                "component": "Aksjesparekonto",
+                "percent": 5,
+            },
+            {
+                "group": "Topp 0,1 prosent",
+                "component": "Aksjesparekonto",
+                "percent": 2,
+            },
             {"group": "1", "component": "Annen finansformue", "percent": 9},
             {"group": "2", "component": "Annen finansformue", "percent": 6},
             {"group": "3", "component": "Annen finansformue", "percent": 5},
