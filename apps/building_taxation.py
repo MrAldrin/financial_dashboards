@@ -265,27 +265,47 @@ def _(
     upper_rate_ui,
     valuation_ui,
 ):
+    box_style = {
+        "border": "1px solid var(--border)",
+        "border-radius": "8px",
+        "padding": "16px",
+    }
     ui_elements = mo.vstack(
         [
-            mo.md("### Velg bolig og eiere"),
-            is_couple,
-            mo.md(
-                "Ved par: bruk samlet eierandel, gjeld og eiendeler. "
-                "Ellers: bruk bare din del. Par-valget er en forenkling."
-            ),
-            mo.hstack(
-                [ownership_share_ui, mortgage_debt, other_net_wealth],
-                justify="start",
-                gap=1,
-                wrap=True,
-            ),
-            mo.hstack(
-                [selected_home.style({"width": "350px"}), selected_home_number],
-                justify="start",
-                align="end",
-                gap=1,
-                wrap=True,
-            ).style({"max-width": "920px"}),
+            mo.md("### Din bolig og økonomi"),
+            mo.vstack(
+                [
+                    mo.md("#### 1. Bolig og eiere"),
+                    mo.md(
+                        "Oppgi verdien av hele boligen. Eierandelen avgjør hvor mye "
+                        "som teller for deg eller dere."
+                    ),
+                    is_couple,
+                    ownership_share_ui,
+                    mo.hstack(
+                        [selected_home.style({"width": "350px"}), selected_home_number],
+                        justify="start",
+                        align="end",
+                        gap=1,
+                        wrap=True,
+                    ).style({"max-width": "920px"}),
+                ]
+            ).style(box_style),
+            mo.vstack(
+                [
+                    mo.md("#### 2. Gjeld og andre eiendeler"),
+                    mo.md(
+                        "For par: bruk samlet gjeld og eiendeler. Ellers: bruk bare din del. "
+                        "Gjeld trekkes fra formuen."
+                    ),
+                    mo.hstack(
+                        [mortgage_debt, other_net_wealth],
+                        justify="start",
+                        gap=1,
+                        wrap=True,
+                    ),
+                ]
+            ).style(box_style),
             mo.md("### Prøv andre regler"),
             mo.md(
                 "**Status: "
@@ -303,13 +323,7 @@ def _(
                 )
                 + "**. Vi bruker samme bolig og økonomi i begge kurver."
             ),
-            valuation_ui.style(
-                {
-                    "border": "1px solid var(--border)",
-                    "border-radius": "8px",
-                    "padding": "16px",
-                }
-            ),
+            valuation_ui.style(box_style),
             mo.vstack(
                 [
                     mo.md("#### 2. Hvilket fradrag og hvilke skattesatser?"),
@@ -325,13 +339,7 @@ def _(
                         wrap=True,
                     ),
                 ]
-            ).style(
-                {
-                    "border": "1px solid var(--border)",
-                    "border-radius": "8px",
-                    "padding": "16px",
-                }
-            ),
+            ).style(box_style),
             mo.md("#### Visning av kurver"),
             chart_max,
         ]
