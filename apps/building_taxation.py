@@ -47,6 +47,12 @@ def _():
 
 @app.cell
 def _():
+    get_home_value, set_home_value = mo.state(14_000_000)
+    return get_home_value, set_home_value
+
+
+@app.cell
+def _(get_home_value, set_home_value):
     is_couple = mo.ui.switch(label="Regn for et par sammen (dobbelt bunnfradrag)")
     ownership_share_ui = mo.ui.number(
         label="Din / deres eierandel (%)",
@@ -69,11 +75,12 @@ def _():
     )
     selected_home = mo.ui.slider(
         start=0,
-        stop=100_000_000,
-        step=100_000,
-        value=14_000_000,
-        show_value=True,
-        include_input=True,
+        stop=30_000_000,
+        step=1,
+        value=get_home_value(),
+        show_value=False,
+        include_input=False,
+        on_change=set_home_value,
         label="Boligens verdi (kr)",
         full_width=True,
     )
@@ -99,6 +106,19 @@ def _():
         ownership_share_ui,
         selected_home,
     )
+
+
+@app.cell
+def _(get_home_value, set_home_value):
+    selected_home_number = mo.ui.number(
+        start=0,
+        stop=30_000_000,
+        step=1,
+        value=get_home_value(),
+        label="Nøyaktig verdi (kr)",
+        on_change=set_home_value,
+    )
+    return (selected_home_number,)
 
 
 @app.cell
@@ -236,6 +256,7 @@ def _(
     other_net_wealth,
     ownership_share_ui,
     selected_home,
+    selected_home_number,
     tax_rate_ui,
     upper_rate_ui,
     valuation_ui,
@@ -248,9 +269,19 @@ def _(
                 "Ved par: bruk samlet eierandel, gjeld og eiendeler. "
                 "Ellers: bruk bare din del. Par-valget er en forenkling."
             ),
-            ownership_share_ui,
-            mo.hstack([mortgage_debt, other_net_wealth], wrap=True),
-            selected_home,
+            mo.hstack(
+                [ownership_share_ui, mortgage_debt, other_net_wealth],
+                justify="start",
+                gap=1,
+                wrap=True,
+            ),
+            mo.hstack(
+                [selected_home.style({"width": "350px"}), selected_home_number],
+                justify="start",
+                align="end",
+                gap=1,
+                wrap=True,
+            ).style({"max-width": "920px"}),
             mo.md("### Prøv en annen boliggrense"),
             mo.md(
                 "**Status: "
