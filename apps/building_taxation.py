@@ -200,9 +200,7 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
             )
             inputs.append(limit_input)
         else:
-            inputs.append(
-                mo.md("Alt over forrige grense").style({"padding-top": "25px"})
-            )
+            inputs.append(mo.md("Alt over forrige grense"))
         if not is_last:
             remove_btn = mo.ui.button(
                 label=f"Fjern trinn {i + 1}",
