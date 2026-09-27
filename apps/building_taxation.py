@@ -93,7 +93,7 @@ def _(get_home_value, set_home_value):
     chart_max = mo.ui.number(
         start=20_000_000,
         stop=200_000_000,
-        value=60_000_000,
+        value=30_000_000,
         step=10_000_000,
         label="Vis kurver opp til (kr)",
     )
