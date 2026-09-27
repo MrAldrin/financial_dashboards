@@ -90,16 +90,8 @@ def _(get_home_value, set_home_value):
         step=50_000,
         label="Årlig inntekt før skatt (kr)",
     )
-    chart_max = mo.ui.number(
-        start=20_000_000,
-        stop=200_000_000,
-        value=30_000_000,
-        step=10_000_000,
-        label="Vis kurver opp til (kr)",
-    )
     return (
         annual_income,
-        chart_max,
         is_couple,
         mortgage_debt,
         other_net_wealth,
@@ -253,7 +245,6 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
 @app.cell
 def _(
     base_deduction,
-    chart_max,
     get_tiers,
     is_couple,
     mortgage_debt,
@@ -340,8 +331,6 @@ def _(
                     ),
                 ]
             ).style(box_style),
-            mo.md("#### Visning av kurver"),
-            chart_max,
         ]
     )
     return (ui_elements,)
@@ -357,7 +346,6 @@ def _(ui_elements):
 def _(
     annual_income,
     base_deduction,
-    chart_max,
     get_tiers,
     is_couple,
     mortgage_debt,
@@ -373,7 +361,7 @@ def _(
         or any(limit <= 0 for limit in tier_limits),
         mo.md("**Bruk ulike, positive grenser for hvert trinn.**"),
     )
-    curve_max = max(chart_max.value, selected_home.value, *tier_limits, 14_000_000)
+    curve_max = max(30_000_000, selected_home.value, *tier_limits)
     shared_inputs = dict(
         is_couple=is_couple.value,
         ownership_share=ownership_share_ui.value / 100,
