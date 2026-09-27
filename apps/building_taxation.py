@@ -183,9 +183,9 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
             value=tier["rate"],
             start=0,
             stop=100,
-            label=f"Skattepliktig andel, % (trinn {i + 1})",
+            label=f"Andel % ({i + 1})",
             on_change=lambda v, idx=i: update_tier(idx, "rate", v),
-        )
+        ).style({"width": "min(260px, calc(100vw - 68px))", "white-space": "nowrap"})
         inputs = [rate_input]
         if not is_last:
             limit_input = mo.ui.number(
@@ -195,7 +195,7 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
                 label=f"Grense kr (trinn {i + 1})",
                 step=1_000_000,
                 on_change=lambda v, idx=i: update_tier(idx, "limit", v),
-            )
+            ).style({"width": "min(260px, calc(100vw - 68px))"})
             inputs.append(limit_input)
         else:
             inputs.append(
@@ -343,23 +343,54 @@ def _(
                 )
                 + "**. Vi bruker samme bolig og økonomi i begge kurver."
             ),
-            valuation_ui.style(box_style),
-            mo.vstack(
+            mo.hstack(
                 [
-                    mo.md("#### 2. Hvilket fradrag og hvilke skattesatser?"),
-                    mo.md(
-                        "Bunnfradraget trekkes fra skattepliktig nettoformue per person. "
-                        "Ordinær sats gjelder opp til 21,5 mill. kr i nettoformue per "
-                        "person; øvre sats gjelder beløpet over dette."
+                    valuation_ui.style(
+                        {
+                            **box_style,
+                            "height": "100%",
+                            "min-width": "min(320px, calc(100vw - 36px))",
+                        }
                     ),
-                    mo.hstack(
-                        [base_deduction, tax_rate_ui, upper_rate_ui],
-                        justify="start",
-                        gap=1,
-                        wrap=True,
+                    mo.vstack(
+                        [
+                            mo.md("#### 2. Hvilket fradrag og hvilke skattesatser?"),
+                            mo.md(
+                                "Bunnfradraget trekkes fra skattepliktig nettoformue per person. "
+                                "Ordinær sats gjelder opp til 21,5 mill. kr i nettoformue per "
+                                "person; øvre sats gjelder beløpet over dette."
+                            ),
+                            mo.hstack(
+                                [
+                                    base_deduction.style(
+                                        {"width": "min(260px, calc(100vw - 68px))"}
+                                    ),
+                                    tax_rate_ui.style(
+                                        {"width": "min(220px, calc(100vw - 68px))"}
+                                    ),
+                                    upper_rate_ui.style(
+                                        {"width": "min(220px, calc(100vw - 68px))"}
+                                    ),
+                                ],
+                                justify="start",
+                                gap=1,
+                                wrap=True,
+                            ),
+                        ]
+                    ).style(
+                        {
+                            **box_style,
+                            "height": "100%",
+                            "min-width": "min(320px, calc(100vw - 36px))",
+                        }
                     ),
-                ]
-            ).style(box_style),
+                ],
+                justify="start",
+                align="stretch",
+                wrap=True,
+                gap=1,
+                widths="equal",
+            ),
         ]
     )
     return (ui_elements,)
