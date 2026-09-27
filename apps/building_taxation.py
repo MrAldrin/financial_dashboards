@@ -122,17 +122,17 @@ def _():
         ]
     )
     base_deduction = mo.ui.number(
-        label="Bunnfradrag per person (NOK)",
+        label="Bunnfradrag (kr)",
         start=0,
         stop=21_500_000,
         value=1_900_000,
         step=100_000,
     )
     tax_rate_ui = mo.ui.number(
-        label="Ordinær skattesats (%)", start=0, stop=10, value=1.0, step=0.1
+        label="Ordinær sats (%)", start=0, stop=10, value=1.0, step=0.1
     )
     upper_rate_ui = mo.ui.number(
-        label="Øvre skattesats (%)", start=0, stop=10, value=1.1, step=0.1
+        label="Øvre sats (%)", start=0, stop=10, value=1.1, step=0.1
     )
     return base_deduction, get_tiers, set_tiers, tax_rate_ui, upper_rate_ui
 
@@ -185,17 +185,19 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
             stop=100,
             label=f"Andel % ({i + 1})",
             on_change=lambda v, idx=i: update_tier(idx, "rate", v),
-        ).style({"width": "min(260px, calc(100vw - 68px))", "white-space": "nowrap"})
+        ).style({"width": "min(190px, calc(100vw - 68px))", "white-space": "nowrap"})
         inputs = [rate_input]
         if not is_last:
             limit_input = mo.ui.number(
                 value=tier["limit"],
                 start=0,
                 stop=200_000_000,
-                label=f"Grense kr (trinn {i + 1})",
+                label=f"Grense (kr) {i + 1}",
                 step=1_000_000,
                 on_change=lambda v, idx=i: update_tier(idx, "limit", v),
-            ).style({"width": "min(260px, calc(100vw - 68px))"})
+            ).style(
+                {"width": "min(260px, calc(100vw - 68px))", "white-space": "nowrap"}
+            )
             inputs.append(limit_input)
         else:
             inputs.append(
@@ -360,16 +362,25 @@ def _(
                                 "Ordinær sats gjelder opp til 21,5 mill. kr i nettoformue per "
                                 "person; øvre sats gjelder beløpet over dette."
                             ),
+                            base_deduction.style(
+                                {
+                                    "width": "min(260px, calc(100vw - 68px))",
+                                    "white-space": "nowrap",
+                                }
+                            ),
                             mo.hstack(
                                 [
-                                    base_deduction.style(
-                                        {"width": "min(260px, calc(100vw - 68px))"}
-                                    ),
                                     tax_rate_ui.style(
-                                        {"width": "min(220px, calc(100vw - 68px))"}
+                                        {
+                                            "width": "min(220px, calc(100vw - 68px))",
+                                            "white-space": "nowrap",
+                                        }
                                     ),
                                     upper_rate_ui.style(
-                                        {"width": "min(220px, calc(100vw - 68px))"}
+                                        {
+                                            "width": "min(220px, calc(100vw - 68px))",
+                                            "white-space": "nowrap",
+                                        }
                                     ),
                                 ],
                                 justify="start",
