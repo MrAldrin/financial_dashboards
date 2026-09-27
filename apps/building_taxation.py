@@ -5,7 +5,7 @@
 
 import marimo
 
-__generated_with = "0.23.9"
+__generated_with = "0.25.0"
 app = marimo.App(width="full", sql_output="polars")
 
 with app.setup:
@@ -36,43 +36,34 @@ with app.setup:
 @app.cell
 def _():
     mo.md("""
-    # Bolig, formue og skatt — utforsk samspillet
-    **Modellberegning, ikke en skattemelding.** Velg én skatteenhets andel av en
-    ordinær primærbolig (én person eller kvalifisert fellesfastsetting).
-    Hele boligen verdsettes før eierandelen fordeles. Andre eiendeler er
-    bankinnskudd / eiendeler uten verdsettingsrabatt. Gjeld trekkes fra én gang.
-    Aksjer med rabatt, sekundærbolig, særskilte flerboligbygg, blandet bostedsstatus
-    innen skatteenheten og kommunale særregler er ikke modellert.
+    # Hva gjør boliggrensen med formuesskatten?
 
-    Boligregelen er vedtatt i [lov 23.06.2026 nr. 66, II/IV](https://lovdata.no/dokument/LTI/lov/2026-06-23-66),
-    med virkning fra inntektsåret 2026. Standardrater, ikke alle kommuners satser:
-    publiserte [2026-satser fra Skatteetaten](https://www.skatteetaten.no/satser/formuesskatt/),
-    14 mill. boliggrense, 25/70 % verdsettelse, 1,9 mill. fradrag,
-    1/1,1 % skatt og øvre innslag 21,5 mill. Dette er ikke en full juridisk regelmotor.
+    Prøv en annen grense og se hva som skjer med skatten for en bolig og i en
+    forenklet oversikt over norske boliger. **Dette er en utforsker, ikke en
+    beregning av din egen skatt eller statens inntekter.** Vi sammenligner med
+    [2026-reglene](https://www.skatteetaten.no/satser/formuesskatt/).
     """)
     return
 
 
 @app.cell
 def _():
-    is_couple = mo.ui.switch(
-        label="Fellesfastsetting (doble personlige innslag, ikke boliggrensen)"
-    )
+    is_couple = mo.ui.switch(label="Regn for et par sammen (dobbelt bunnfradrag)")
     ownership_share_ui = mo.ui.number(
-        label="Skatteenhetens samlede eierandel (%)",
+        label="Din / deres eierandel (%)",
         start=0,
         stop=100,
         value=100,
         step=1,
     )
     mortgage_debt = mo.ui.number(
-        label="Skatteenhetens gjeld (NOK, allerede fordelt)",
+        label="Gjeld for eierandelen (kr)",
         start=0,
         value=1_600_000,
         step=100_000,
     )
     other_net_wealth = mo.ui.number(
-        label="Skatteenhetens andre eiendeler uten rabatt, før gjeld (NOK)",
+        label="Andre eiendeler (kr)",
         start=0,
         value=0,
         step=100_000,
@@ -84,21 +75,21 @@ def _():
         value=14_000_000,
         show_value=True,
         include_input=True,
-        label="Hele boligens verdi (NOK)",
+        label="Boligens verdi (kr)",
         full_width=True,
     )
     annual_income = mo.ui.number(
         start=0,
         value=800_000,
         step=50_000,
-        label="Skatteenhetens årlige bruttoinntekt (NOK)",
+        label="Årlig inntekt før skatt (kr)",
     )
     chart_max = mo.ui.number(
         start=20_000_000,
         stop=200_000_000,
         value=60_000_000,
         step=10_000_000,
-        label="Kurvenes øvre boligverdi (NOK)",
+        label="Vis kurver opp til (kr)",
     )
     return (
         annual_income,
@@ -181,7 +172,7 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
             value=tier["rate"],
             start=0,
             stop=100,
-            label=f"Andel med i formuen, % (trinn {i + 1})",
+            label=f"Skattepliktig andel, % (trinn {i + 1})",
             on_change=lambda v, idx=i: update_tier(idx, "rate", v),
         )
         inputs = [rate_input]
@@ -190,7 +181,7 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
                 value=tier["limit"],
                 start=0,
                 stop=200_000_000,
-                label=f"Grense NOK (Trinn {i + 1})",
+                label=f"Grense kr (trinn {i + 1})",
                 step=1_000_000,
                 on_change=lambda v, idx=i: update_tier(idx, "limit", v),
             )
@@ -207,13 +198,11 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
             )
             inputs.append(remove_btn)
         tier_rows.append(mo.hstack(inputs, justify="start", align="center", wrap=True))
-    add_btn = mo.ui.button(
-        label="Legg til verdsettelsesgrense", on_change=lambda _: add_tier()
-    )
+    add_btn = mo.ui.button(label="Legg til grense", on_change=lambda _: add_tier())
     tier_presets = mo.hstack(
         [
             mo.ui.button(
-                label=f"Boligtrinn: {limit} mill.",
+                label=f"Boliggrense: {limit} mill.",
                 on_change=lambda _, limit=limit: set_tiers(
                     [
                         {"limit": limit * 1_000_000, "rate": 25.0},
@@ -228,12 +217,8 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
     )
     valuation_ui = mo.vstack(
         [
-            mo.md("#### Verdsettelsestrinn (sorteres etter grense):"),
-            mo.md(
-                "**Boligtrinn-knappene endrer bare verdsettelsestrinn** (grense og andel); "
-                "personlig økonomi, fradrag og skattesatser beholdes. "
-                "«Boligtrinn: 14 mill.» er ikke en nullstilling av hele sandkassen."
-            ),
+            mo.md("#### Boliggrenser"),
+            mo.md("Knappene endrer bare boliggrensene, ikke de andre valgene dine."),
             tier_presets,
             *tier_rows,
             add_btn,
@@ -259,28 +244,20 @@ def _(
 ):
     ui_elements = mo.vstack(
         [
-            mo.md("### Personlig økonomi"),
+            mo.md("### Velg bolig og eiere"),
             is_couple,
             mo.md(
-                "Fellesfastsetting er et selvvalgt scenario, ikke en kvalifikasjonskontroll. "
-                "Ekteskapets inngåelsesår og separasjon/varig adskillelse ved årsslutt "
-                "har særregler. Institusjonsopphold alene er ikke varig adskillelse. "
-                "Vanlige samboere beregnes hver for seg; bare særskilt kvalifiserte "
-                "meldepliktige samboere omfattes. "
-                "[Regler: §§ 2-10–2-16](https://lovdata.no/dokument/NL/lov/1999-03-26-14/§2-10). "
-                "Ved fellesfastsetting oppgis samlet eierandel og økonomi for begge. "
-                "Et kvalifisert par som eier 50 % hver, oppgir 100 %. "
-                "All oppgitt boligandel må være primærbolig for skatteenheten. "
-                "Andre eiendeler, gjeld og inntekt er allerede fordelt og skaleres ikke med eierandelen."
+                "Ved par: bruk samlet eierandel, gjeld, eiendeler og inntekt. "
+                "Ellers: bruk bare din del. Par-valget er en forenkling."
             ),
             ownership_share_ui,
             mo.hstack([mortgage_debt, other_net_wealth, annual_income], wrap=True),
             selected_home,
-            mo.md("### Politisk sandkasse — sammenlignet med fast 2026-referanse"),
+            mo.md("### Prøv en annen boliggrense"),
             mo.md(
                 "**Status: "
                 + (
-                    "samme politikk som 2026-referansen"
+                    "som i 2026"
                     if get_tiers()
                     == [
                         {"limit": 14_000_000, "rate": 25.0},
@@ -289,19 +266,16 @@ def _(
                     and base_deduction.value == 1_900_000
                     and tax_rate_ui.value == 1.0
                     and upper_rate_ui.value == 1.1
-                    else "egendefinert politikk"
+                    else "dine egne regler"
                 )
-                + "**. Personlig økonomi gjelder begge kurver; boligtrinn-knappene "
-                "endrer bare sandkassens boligtrinn."
+                + "**. Vi bruker samme bolig og økonomi i begge kurver."
             ),
             mo.hstack([base_deduction, tax_rate_ui, upper_rate_ui], wrap=True),
             valuation_ui,
             chart_max,
             mo.md(
-                "25 % med i formuen betyr 75 % rabatt. En boliggrense lager en knekk, "
-                "ikke et hopp. Inntekt påvirker prosentbelastningen, ikke skatten i kroner. "
-                "Gjeld og andre eiendeler holdes faste langs hele kurven. "
-                "Standardeksemplet har skattestart og boliggrense ved 14 mill."
+                "25 % skattepliktig andel betyr at 75 % av boligverdien ikke teller "
+                "med i formuen. Inntekt endrer bare skatten målt som andel av inntekten."
             ),
         ]
     )
@@ -447,13 +421,12 @@ def _(
         f"Referanse: **{selected_rows[0]['tax']:,.0f} kr/år** · "
         f"Sandkasse: **{selected_rows[1]['tax']:,.0f} kr/år** · "
         f"Endring: **{selected_delta:+,.0f} kr/år**\n\n"
-        f"Skatteenhetens boligandel: **{selected_rows[1]['owned_market_value']:,.0f} kr** · "
-        f"Økonomisk nettoformue: **{selected_rows[1]['economic_wealth']:,.0f} kr** "
-        "(før skatterabatt). Inntektsandel: "
+        f"Din/deres boligandel: **{selected_rows[1]['owned_market_value']:,.0f} kr** · "
+        "Skatt som andel av inntekt: "
         + (
-            f"**{selected_rows[1]['income_share']:.2f} %** av bruttoinntekt."
+            f"**{selected_rows[1]['income_share']:.2f} %**."
             if selected_rows[1]["income_share"] is not None
-            else "ikke definert ved null inntekt."
+            else "– (ingen inntekt)."
         )
     )
     curve_panels = [
@@ -515,19 +488,12 @@ def _(
             coordinated_curves,
             mo.accordion(
                 {
-                    "Vis valgt boligs verdsetting, skattebånd og marginal endring": mo.vstack(
+                    "Slik regnes skatten for valgt bolig": mo.vstack(
                         [
                             mo.md(
-                                "Beløpene gjelder **skatteenheten** ved valgt *hel* boligverdi. "
-                                "Verdsetting skjer før eierandelen fordeles; andre eiendeler og "
-                                "gjeld er allerede fordelt. Skattegrunnlag før nullgulv = "
-                                "boligformuesverdi + andre eiendeler − gjeld − personfradrag. "
-                                "Begge skattebånd beregnes på samme nettoformue; fradraget trekkes "
-                                "**bare én gang**. Marginalene viser ekstra årlig skatt i kroner "
-                                "ved +1 mill. kr *hel* boligverdi, innen et lineært stykke, ikke "
-                                "skatt på en faktisk 1m-endring som krysser flere grenser. "
-                                "Ved knekk kan venstre og høyre avvike; regningen hopper ikke. "
-                                "Tom venstre/høyre betyr utenfor vist område."
+                                "Tallene gjelder valgt bolig og eierandel. Venstre/høyre viser "
+                                "hvor mye årsskatten øker når boligverdien øker med 1 mill. kr "
+                                "på hver side av en grense."
                             ),
                             mo.ui.table(
                                 diagnostic_table,
@@ -545,7 +511,7 @@ def _(
             ),
         ]
     )
-    return coordinated_curves, selected_rows
+    return (selected_rows,)
 
 
 @app.cell
@@ -588,7 +554,7 @@ def _(curve_max, get_tiers, selected_home):
     housing_chart = (housing_bars + histogram_rules + unknown_tail).properties(
         width=950,
         height=160,
-        title="Primærboliger: digitalisert fra departementets figur (2026). Gul hale >30m: ukjent, ikke null.",
+        title="Boliger i figuren (2026). Over 30 mill. kr: ukjent antall.",
     )
     return housing_chart, housing_df, reference
 
@@ -608,31 +574,24 @@ def _(get_tiers, housing_df, reference, selected_rows):
     mo.vstack(
         [
             mo.md(
-                f"### Hvor ligger eksemplet i formuesfordelingen?\n**{wealth_context}**\n\n"
-                "SSB 10318, beregnet nettoformue i **2024**, husholdninger uten studenthusholdninger. "
-                "Dette er et intervall, ikke en eksakt rang. Dagens egenoppgitte kroner sammenlignes "
-                "uten prisjustering; pensjonsrettigheter er ikke med. Et dyrt hus alene bestemmer ikke rang. "
-                "Skatteenheten er ikke nødvendigvis en hel statistisk husholdning: særlig ved delt "
-                "eierskap er dette kun en beløpssammenligning, ikke din personlige persentil."
+                f"### Hvor plasserer beløpet seg?\n**{wealth_context}**\n\n"
+                "Sammenlignet med husholdninger i [SSB 2024](https://www.ssb.no/statbank/table/10318). "
+                "Dette er ikke en personlig plassering: en eierandel er ikke alltid en hel husholdning."
             ),
             mo.md(
-                f"### Hvor mange boliger ligger over grensene?\n"
-                f"Figuren dekker omtrent **{housing_df['count'].sum() / 1_000_000:.2f} millioner** primærboliger i viste grupper. "
-                "Antall under er **rekonstruert**, ikke eksakte registertellinger. "
-                "Midtestimatet antar jevn fordeling i hvert millionintervall; nedre/øvre gjelder ukjent "
-                "plassering innen intervallet. **Boliger over 30 mill. kommer i tillegg og er ukjent.** "
-                "Dette teller boliger, ikke skattebetalere. Departementet oppgir avrundet 2 % over 14 mill."
+                f"### Hvor mange boliger er over grensen?\nOmtrent "
+                f"**{housing_df['count'].sum() / 1_000_000:.2f} mill.** boliger er med i figuren. "
+                "Tallene under er anslag fra figuren, ikke eksakte tellinger. "
+                "Antallet over 30 mill. kr er ukjent."
             ),
             mo.ui.table(pl.DataFrame(exposure_rows), selection=None),
             mo.accordion(
                 {
                     "Kilder og metode": mo.md(
-                        "[Boligfigur, Finansdepartementet 27.02.2026, side 8 og 10](https://www.regjeringen.no/contentassets/27840e5ecb354f02a249f3cbd86b01d9/finmins-presentasjon-oppdatert-boligmodell-27.02.26.pdf). "
-                        "Høyder hentet fra PDF-vektorer, avrundet til 100 boliger. Etikett 1 tolkes som 0–1 mill., "
-                        "etikett 2 som 1–2 mill. osv.; intervallgrensene er en antakelse. "
-                        "Ingen ukjent hale er fylt inn som observerte boliger. "
-                        "[Formuesgrenser: SSB 10318](https://www.ssb.no/statbank/table/10318), korrigert februar 2026. "
-                        "Kildesnapshot 20.09.2026 er pakket i appen; ingen personlige verdier sendes til SSB."
+                        "[Boligfordeling: Finansdepartementet (2026)]"
+                        "(https://www.regjeringen.no/contentassets/27840e5ecb354f02a249f3cbd86b01d9/finmins-presentasjon-oppdatert-boligmodell-27.02.26.pdf). "
+                        "Vi har lest av søylene i en figur, ikke hentet eksakte boligdata. "
+                        "[Formuesgrenser: SSB 2024](https://www.ssb.no/statbank/table/10318)."
                     )
                 }
             ),
@@ -648,25 +607,21 @@ def _():
         stop=100_000,
         value=1000,
         step=500,
-        label="Antatt antall boliger over 30 mill. (ikke observert)",
+        label="Antall boliger over 30 mill. kr (ditt anslag)",
     )
     tail_upper_ui = mo.ui.number(
         start=50_000_000,
         stop=200_000_000,
         value=60_000_000,
         step=10_000_000,
-        label="Antatt øvre boligverdi i halen (NOK)",
+        label="Høyeste boligverdi i anslaget (kr)",
     )
     mo.vstack(
         [
             mo.md(
-                "### Fordelingsvektet illustrasjon — ikke et anslag på Norges faktiske proveny\n"
-                "**Felles profil:** Vi legger samme gjeld, andre eiendeler og fastsettingsform som "
-                "du valgte over, på alle boliger. Én hel-eier-skatteenhet per bolig. "
-                "Din personlige eierandel brukes ikke her: illustrasjonen beholder 100 % eierskap. "
-                "Dette er en kontrollert øvelse, ikke observerte norske husholdninger. "
-                "Halen er selvvalgt: halvparten i 30–40 mill., halvparten i 40 mill.–øvre verdi. "
-                "Alle intervaller antas jevnt fordelt i midtestimatet."
+                "### Hvis alle boliger hadde samme eiere og gjeld\n"
+                "Vi gir hver bolig de samme valgene som over, men antar én eier med "
+                "100 % andel per bolig. Boliger over 30 mill. kr er ditt eget anslag."
             ),
             mo.hstack([tail_count_ui, tail_upper_ui]),
         ]
@@ -718,15 +673,11 @@ def _(policy_inputs, reference, shared_inputs, tail_count_ui, tail_upper_ui):
     mo.vstack(
         [
             mo.md(
-                f"**Illustrert årlig endring i samlede skatteinntekter: {central_effect['uniform'] / 1_000_000:+.1f} mill. kr.** "
-                "Minus betyr mindre skatt enn 2026-referansen.\n\n"
-                f"**Sensitivitet: {sensitivity_low / 1_000_000:+.1f} til {sensitivity_high / 1_000_000:+.1f} mill. kr.** "
-                "Dette er ikke et konfidensintervall eller en nasjonal prognose. "
-                "Vi varierer gjelden til 0,5×/1×/1,5× din valgte gjeld og haleantallet til 0×/1×/2× antakelsen. "
-                "I tillegg brukes laveste/høyeste skatteendring innen hvert verdiintervall. "
-                "Hvis valgt gjeld er null, gir gjeldsfaktorene samme profil. "
-                "Ukjente eierforhold, samvariasjon mellom bolig/annen formue/gjeld og verdier over haletaket "
-                "er ikke fanget av spennet. Inntekt og atferd endrer ikke dette statiske regnestykket."
+                f"**Endring i modellen: {central_effect['uniform'] / 1_000_000:+.1f} mill. kr/år.** "
+                "Minus betyr mindre skatt enn i 2026. Dette er ikke et anslag for Norge.\n\n"
+                f"Med ulik gjeld og antall dyre boliger: "
+                f"**{sensitivity_low / 1_000_000:+.1f} til {sensitivity_high / 1_000_000:+.1f} mill. kr/år** "
+                "i denne forenklede modellen."
             ),
             mo.accordion(
                 {
@@ -737,7 +688,7 @@ def _(policy_inputs, reference, shared_inputs, tail_count_ui, tail_upper_ui):
             ),
         ]
     )
-    return central_effect, population_results
+    return
 
 
 @app.cell
@@ -768,16 +719,12 @@ def _(policy_inputs, reference, tail_count_ui, tail_upper_ui):
         )
     mo.accordion(
         {
-            "Avansert: antatte eiere og gjeld/formue per bolig": mo.vstack(
+            "Flere eksempler: eierskap og gjeld": mo.vstack(
                 [
                     mo.md(
-                        "**Illustrative årsbeløp, ikke observerte norske skatteinntekter.** "
-                        "Endring = sandkasse minus fast 2026-referanse for **samme** "
-                        "antatte befolkning i hver rad; pluss betyr mer skatt i modellen. "
-                        "Boligene er ca. 1,71 mill. rekonstruert fra Finansdepartementets "
-                        "2026-figur (0–30 mill.) pluss valgt, **uobservert** antall over 30 mill. "
-                        "(halvt i 30–40 mill., halvt i 40 mill.–valgt haletak). Jevn prisfordeling "
-                        "innen hvert intervall; ingen boliger over taket er modellert."
+                        "Fire ulike antakelser om hvem som eier boligene og hva de eier eller "
+                        "skylder ellers. Pluss/minus viser forskjellen fra 2026 med samme "
+                        "antakelser. Dette er ikke faktiske skatteinntekter."
                     ),
                     mo.ui.table(
                         pl.DataFrame(scenario_rows),
@@ -789,75 +736,35 @@ def _(policy_inputs, reference, tail_count_ui, tail_upper_ui):
                         show_download=False,
                     ),
                     mo.md(
-                        "**Alle vekter, eierskap og porteføljer er antakelser:** "
-                        "Under 14 mill.: 80 % én eier, 10 % kvalifisert felles skatteenhet, "
-                        "10 % to separate eiere. 14–30 mill.: 60/20/20 %; antatt hale: "
-                        "50/25/25 %. Separate eiere har 50/50-andeler i startmiksen. "
-                        "Annen formue/gjeld per *bolig* er 0/1,6 mill., 0,5/2 mill. "
-                        "og 2/3 mill. i de tre prisgruppene, fordelt én gang på skatteenheter. "
-                        "Et fellesfastsatt par er én skatteenhet; to separate eiere er to, "
-                        "med hvert sitt personfradrag. Kvalifikasjon for fellesfastsetting "
-                        "er forutsatt, ikke fastslått. Tabellen teller **boliger og antatte "
-                        "skatteenheter**, ikke SSBs statistiske husholdninger."
-                    ),
-                    mo.md(
-                        "De to «dyre boliger»-radene legger til henholdsvis 2 mill. "
-                        "eiendeler eller 2 mill. gjeld per bolig ved verdi fra 14 mill.; "
-                        "de endrer derfor **samlet antatt portefølje**, ikke bare samvariasjon. "
-                        "25/75-raden beholder boligantall, enhetsmiks og samlet gjeld/eiendeler "
-                        "per bolig, men flytter andeler mellom separate eiere. "
-                        "Dette er navngitte sensitiviteter, **ikke** nedre/øvre statistiske "
-                        "grenser eller konfidensintervall. Ukjent samvariasjon, virkelig "
-                        "eierfordeling, verdier over haletaket, andre rabatter, særregler "
-                        "og atferd mangler. "
-                        "[Metode og kilder](https://github.com/MrAldrin/financial_dashboards/blob/main/docs/wealth_population_scenarios.md). "
-                        "Offisielle anslag nedenfor og SSBs husholdningsreferanser er faste, "
-                        "ikke tilpasset disse radene."
+                        "Alle eierandeler, formuer og lån her er antakelser. "
+                        "Radene med dyre boliger legger til 2 mill. kr i eiendeler eller gjeld "
+                        "per bolig over 14 mill. kr; 25/75-raden flytter andeler mellom to eiere. "
+                        "[Se alle forutsetningene](https://github.com/MrAldrin/financial_dashboards/blob/main/docs/wealth_population_scenarios.md)."
                     ),
                 ]
             )
         }
     )
-    return scenario_rows
+    return
 
 
 @app.cell
 def _():
     mo.md("""
-    ### Offisielle scenarioer — faste, daterte referanser
+    ### Offentlige anslag (ikke fra denne appen)
 
-    **Publiserte anslag, ikke resultater fra skyveknappene.** Minus betyr lavere
-    skatteinntekter i kildens sammenligning. Beløpene er omtrentlige millioner kroner.
+    Ulike forslag og sammenligninger gir ulike tall. Tabellen er her som
+    bakgrunn, **ikke for å kontrollere resultatene fra knappene**. Minus betyr
+    lavere skatteinntekter. Millioner kroner per år.
 
-    | Kilde og dato | Endring og sammenligningsgrunnlag | Anslag |
+    | Kilde | Hva ble sammenlignet? | Anslag |
     | :--- | :--- | ---: |
-    | [Svar 1404, 12.02.2026](https://www.stortinget.no/globalassets/pdf/dokumentserien/2025-2026/dok15-202526-1404-vedlegg.pdf), s. 2 | Boliggrense 10 → 20 mill.; mot vedtatte 2026-regler, påløpt | −1 250 |
-    | [Finansdepartementet, 27.02.2026](https://www.regjeringen.no/contentassets/27840e5ecb354f02a249f3cbd86b01d9/finmins-presentasjon-oppdatert-boligmodell-27.02.26.pdf), lysbilde 5 | Boliggrense 10 → 14 mill.; del av figur mot videreført 2025-system i 2026 | −730 |
-    | [Prop. 95 LS, 12.05.2026](https://www.regjeringen.no/no/dokumenter/prop.-95-ls-20252026/id3159628/?ch=3), kap. 3, korrigert utgave 11.06.2026 | Boliggrense 10 → 14 mill.; isolert mot vedtatt budsjett, påløpt i 2026 | −830 |
+    | [Stortinget, februar 2026](https://www.stortinget.no/globalassets/pdf/dokumentserien/2025-2026/dok15-202526-1404-vedlegg.pdf) | Grense fra 10 til 20 mill. kr | −1 250 |
+    | [Finansdepartementet, februar 2026](https://www.regjeringen.no/contentassets/27840e5ecb354f02a249f3cbd86b01d9/finmins-presentasjon-oppdatert-boligmodell-27.02.26.pdf) | Grense fra 10 til 14 mill. kr | −730 |
+    | [Regjeringen, mai 2026](https://www.regjeringen.no/no/dokumenter/prop.-95-ls-20252026/id3159628/?ch=3) | Grense fra 10 til 14 mill. kr, annet sammenligningsgrunnlag | −830 |
 
-    **Ikke samme regnestykke:** Appen bruker 14 mill. som referanse. En valgt
-    10-millionersgrense går derfor motsatt vei av den offisielle lettelsen 10 → 14.
-    Selv med snudd fortegn er fellesprofilen ikke en nasjonal modell. Vi kalibrerer
-    ikke illustrasjonen til disse tallene. Forskjellen mellom februaranslaget
-    −730 og maianslaget −830 er ikke avklart; de skal ikke summeres eller blandes.
-
-    **Maianslaget i sammenheng:** Proposisjonen oppgir også +550 mill. fra oppdaterte
-    modellanslag mot forutsetningene bak budsjettvedtaket. Sammen med tidligere
-    vedtatte endringer gir pakken −280 mill. påløpt i 2026. Dette er ikke enda et
-    isolert terskelanslag. Pakkens bokførte virkning i 2026 anslås til null, avhengig
-    av endrede skattekort; bokført og påløpt er forskjellige størrelser.
-
-    **Hvem gjelder 20-millionersanslaget?** Svar 1404 anslår om lag **114 600 personer**
-    med lavere skatt, om lag **11 000 kr** i gjennomsnittlig lettelse og **1,72 mill. kr**
-    i gjennomsnittlig bruttoinntekt blant de berørte. Dette er personer, ikke boliger
-    eller husholdninger, og sier ikke hva en vilkårlig eier av en dyr bolig tjener.
-    Avrundede gjennomsnitt og antall skal ikke tvinges til å gi nøyaktig proveny.
-    Persondesilene i svaret kobles ikke til SSBs husholdningsdesiler nedenfor.
-
-    Beregningen bruker LOTTE-Skatt med et 2023-utvalg framskrevet til 2026 og
-    boligverdier fra skattekortene for 2026 (s. 5–6). Den inkluderer ikke
-    atferdsendringer eller at flere kan dokumentere lavere boligverdi.
-    Kildene beskriver daterte forslag/anslag, ikke dokumentasjon av dagens lovvedtak.
+    Februar- og maianslaget bygger på ulike sammenligninger. De kan ikke
+    legges sammen eller sammenlignes direkte med appens forenklede eksempler.
     """)
     return
 
@@ -1228,29 +1135,20 @@ def _(reference):
     mo.vstack(
         [
             mo.md(
-                "### Hvor er finansformuen? — publiserte SSB-tall, 2024\n"
-                "Husholdninger rangert etter **nettoformue**, ikke inntekt eller boligpris. "
-                "Finansformue er bankinnskudd, verdipapirer m.m., **ikke bolig eller gjeld**. "
-                "Vi viser den verifiserte delhistorien fremfor å finne på bolig- og gjeldsfordelingen."
+                "### Hvordan er formuen fordelt? (SSB 2024)\n"
+                "Husholdningene er sortert etter formue, ikke boligpris. "
+                "Finansformue er blant annet bank og aksjer, ikke bolig."
             ),
             mo.md(
-                "#### Nettoformuen: finansformue og realkapital etter samlet gjeld\n"
-                "**Svart diamant = publisert nettoformue.** Blått = publisert finansformue. "
-                "Gult = nettoformue minus finansformue, altså realkapital minus **all** gjeld. "
-                "Vi trekker fra kompatible desilgjennomsnitt fra SSB 10318 og artikkelens figur 2, "
-                "samme år og befolkning. Dette er en regnskapsmessig differanse, ikke en antatt boligportefølje. "
-                "Negativt gult betyr at samlet gjeld overstiger realkapitalen; det betyr ikke at boligen har negativ verdi. "
-                "Realkapital omfatter mer enn bolig, og samlet gjeld omfatter mer enn boliglån."
+                "#### Formue og gjeld\nBlått er finansformue. Gult er andre "
+                "verdier minus gjeld. Diamanten er SSBs samlede formue."
             ),
             net_balance_chart,
             mo.accordion(
                 {
-                    "Avstemming av publiserte desiltall": mo.md(
-                        "SSB 10318s desilgrupper summerer til én husholdning mindre enn landstotalen. "
-                        "Det vektede desilgjennomsnittet er om lag 462 kr høyere enn publisert "
-                        "landsgjennomsnitt på 3 890 400 kr (ca. 0,012 %). Årsaken er ikke avklart. "
-                        "Vi beholder de publiserte verdiene uten å skalere dem for å tvinge samsvar. "
-                        "Gul differanse er beregnet fra publiserte gjennomsnitt, ikke direkte observerte porteføljer."
+                    "Hvorfor stemmer ikke alle summene helt?": mo.md(
+                        "SSBs avrundede tall summerer ikke alltid nøyaktig. "
+                        "Vi viser de publiserte tallene uten å endre dem."
                     )
                 }
             ),
@@ -1259,15 +1157,13 @@ def _(reference):
             decile_composition,
             top_composition,
             mo.md(
-                "[SSB, Vekst i husholdningenes finansformue i 2024, figur 2–3 (19.02.2026)]"
+                "[Kilde: SSB, finansformue i 2024]"
                 "(https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/statistikk/inntekts-og-formuesstatistikk-for-husholdninger/artikler/vekst-i-husholdningenes-finansformue-i-2024). "
-                "Studenthusholdninger utelatt. Prosentene er avrundet og kan summere til 99 eller 101. "
-                "Toppgruppene overlapper og skal ikke legges til desilene. "
-                "Gjennomsnitt er ikke en typisk husholdning; finansformue er heller ikke bare tilgjengelige kontanter."
+                "Tallene er gjennomsnitt, ikke en typisk husholdning."
             ),
         ]
     )
-    return financial_mean_chart, decile_composition, top_composition, net_balance_chart
+    return
 
 
 @app.cell
@@ -1292,53 +1188,29 @@ def _(composition_group):
     )
     mo.vstack(
         [
-            mo.md(f"""
-        ### Formuens sammensetning etter {"alder på hovedinntektstaker" if by_age else "husholdningstype"} — 2024
-
-        **Gjennomsnitt for alle husholdninger i hver type, også dem som ikke eier bolig.**
-        Husholdningstype er ikke formuesrang. Dette er ikke typiske faktiske husholdninger.
-        Eiendeler vises over null, **samlet gjeld** under null og publisert nettoformue
-        som svart diamant. Gjeld er ikke bare boliglån; figuren viser ikke boligegenkapital.
-        **Blandet verdsettelse:** SSB kombinerer beregnede markedsverdier og enkelte
-        skatteverdier; dette er ikke kalkulatorens skattebase.
-        Tallene er faste referanser og endres ikke av skattevalgene over.
-        """),
+            mo.md(
+                f"### Formue etter {'alder' if by_age else 'husholdningstype'} (SSB 2024)\n"
+                "Gjennomsnitt for alle husholdninger i hver gruppe, også de som ikke eier bolig. "
+                "Gjeld vises under null. Tallene endres ikke av valgene over."
+            ),
             household_composition_chart,
-            mo.md(f"""
-        [SSB {composition_reference["table"]}](https://www.ssb.no/statbank/table/{composition_reference["table"]}), 2024, korrigert 12.02.2026;
-        kildesnapshot 20.09.2026. Studenthusholdninger og aleneboende barn under 18 år
-        er utelatt. Landstotalen på **2 616 826 husholdninger** er ikke en ekstra type.
-        **Avrundede gjennomsnitt beholdes:** komponentenes sum kan avvike fra publisert
-        nettoformue med opptil 100 kr. Hold pekeren over diamantene for avvik og antall.
-        """),
+            mo.md(
+                f"[Kilde: SSB {composition_reference['table']}]"
+                f"(https://www.ssb.no/statbank/table/{composition_reference['table']})."
+            ),
             mo.accordion(
                 {
-                    "Definisjoner og begrensninger — statistiske husholdninger": mo.md("""
-        Andre realaktiva = beregnet realkapital minus primærbolig minus sekundærbolig.
-        Total realkapital stables derfor ikke i tillegg til delene.
-        **Blandet verdsettelse:** bolig, næringseiendom, skog og gårdsbruk bruker
-        beregnede markedsverdier; annen eiendom, driftsmidler og innbo kan ha skatteverdier.
-        Våningshus på gårdsbruk inngår ikke i primærboligkomponenten.
-        Finansformue følger SSBs statistiske definisjon før aktuelle verdsettingsrabatter,
-        ikke kalkulatorens skattebase; enkelte eiendeler er ufullstendig verdsatt.
-        Pensjonsrettigheter er utelatt. Gjeld er før skatterelaterte reduksjoner og
-        inkluderer andeler av boligselskapenes gjeld.
-
-        Par omfatter også samboere og er ikke automatisk én felles skatteenhet.
-        Gruppemidlene lastes ikke inn i kalkulatoren eller brukes som nasjonale vekter:
-        **skatt på gjennomsnittsformuen er ikke gjennomsnittlig skatt**.
-        Aldersgruppene er definert ved **hovedinntektstakerens alder**, ikke alle
-        beboeres alder; snitt fra ett år viser ikke en livsløpseffekt. Aldersgruppene
-        kan ikke krysskobles med husholdningstyper eller formuesdesiler som om de var
-        observerte personer. Kilden gir ikke fordelingen innad i gruppene eller bolig
-        og gjeld etter formuesdesil.
-        [SSBs definisjoner](https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/statistikk/inntekts-og-formuesstatistikk-for-husholdninger).
-        """)
+                    "Hva viser tallene?": mo.md("""
+    Eiendeler og gjeld er gjennomsnitt i hver gruppe. De er ikke brukt til å
+    beregne skatt i appen. Par er ikke nødvendigvis én felles skatteenhet.
+    Alder gjelder hovedinntektstakeren; ett år med tall viser ikke hvordan
+    folk endrer formue gjennom livet. [Les SSBs definisjoner](https://www.ssb.no/inntekt-og-forbruk/inntekt-og-formue/statistikk/inntekts-og-formuesstatistikk-for-husholdninger).
+    """)
                 }
             ),
         ]
     )
-    return (household_composition_chart,)
+    return
 
 
 @app.function
@@ -1798,7 +1670,6 @@ def home_value_at_tax_wealth(
     return None
 
 
-# BEGIN GENERATED PUBLIC REFERENCE
 @app.function
 def public_reference_data() -> dict:
     """Public aggregates; generated offline by scripts/build_wealth_reference.py."""
@@ -2038,10 +1909,6 @@ def public_reference_data() -> dict:
     }
 
 
-# END GENERATED PUBLIC REFERENCE
-
-
-# BEGIN GENERATED HOUSEHOLD COMPOSITION
 @app.function
 def household_composition_reference() -> dict:
     """Public aggregates; generated offline by scripts/build_wealth_reference.py."""
@@ -2264,10 +2131,6 @@ def household_composition_reference() -> dict:
     }
 
 
-# END GENERATED HOUSEHOLD COMPOSITION
-
-
-# BEGIN GENERATED AGE COMPOSITION
 @app.function
 def age_composition_reference() -> dict:
     """Public aggregates; generated offline by scripts/build_wealth_reference.py."""
@@ -2384,9 +2247,6 @@ def age_composition_reference() -> dict:
             },
         ],
     }
-
-
-# END GENERATED AGE COMPOSITION
 
 
 if __name__ == "__main__":

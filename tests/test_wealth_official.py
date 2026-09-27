@@ -3,8 +3,8 @@
 import ast
 import hashlib
 import json
-from pathlib import Path
 import unittest
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -26,7 +26,7 @@ class OfficialContextTests(unittest.TestCase):
         self.assertIn("2026-05-12", index)
         self.assertIn("11.6.2026", index)
 
-    def test_context_is_static_and_preserves_comparison_caveats(self) -> None:
+    def test_context_is_static_and_distinguishes_official_estimates(self) -> None:
         tree = ast.parse((ROOT / "apps/building_taxation.py").read_text())
         cells = [
             node
@@ -35,7 +35,7 @@ class OfficialContextTests(unittest.TestCase):
             and any(
                 isinstance(value, ast.Constant)
                 and isinstance(value.value, str)
-                and "### Offisielle scenarioer" in value.value
+                and "### Offentlige anslag" in value.value
                 for value in ast.walk(node)
             )
         ]
@@ -45,22 +45,14 @@ class OfficialContextTests(unittest.TestCase):
         # Only a literal markdown call: no slider values or live calculations.
         call = cell.body[0].value
         self.assertIsInstance(call, ast.Call)
-        text = ast.literal_eval(call.args[0])
+        text = " ".join(ast.literal_eval(call.args[0]).split())
         for phrase in (
             "−1 250",
             "−730",
             "−830",
-            "+550",
-            "−280",
-            "114 600 personer",
-            "1,72 mill. kr",
-            "11 000 kr",
-            "ikke avklart",
-            "bokført og påløpt",
-            "motsatt vei",
-            "Persondesilene",
-            "2023-utvalg",
-            "atferdsendringer",
+            "ulike sammenligninger",
+            "ikke fra denne appen",
+            "kan ikke legges sammen",
         ):
             self.assertIn(phrase, text)
 

@@ -59,10 +59,10 @@ def main() -> None:
                 f"http://127.0.0.1:{server.server_port}/apps/building_taxation.html"
             )
             # Controls live inside shadow roots; Playwright locators pierce them.
-            preset = page.get_by_role("button", name="Boligtrinn: 10 mill.", exact=True)
+            preset = page.get_by_role("button", name="Boliggrense: 10 mill.", exact=True)
             expect(preset).to_be_visible(timeout=180_000)
             official_heading = page.get_by_role(
-                "heading", name="Offisielle scenarioer — faste, daterte referanser"
+                "heading", name="Offentlige anslag (ikke fra denne appen)"
             )
             expect(official_heading).to_be_visible(timeout=180_000)
             official_table = page.get_by_role("table").filter(has_text="−1 250")
@@ -71,7 +71,7 @@ def main() -> None:
             expect(
                 page.get_by_role(
                     "heading",
-                    name="Formuens sammensetning etter husholdningstype — 2024",
+                    name="Formue etter husholdningstype (SSB 2024)",
                 )
             ).to_be_visible(timeout=60_000)
             composition = page.locator('marimo-mime-renderer[data-data*="SSB 10316:"]')
@@ -82,15 +82,15 @@ def main() -> None:
                 path=str(root / "local_testing/wealth_t7_revalidation_desktop.png")
             )
             expect(
-                page.get_by_text("Status: samme politikk som 2026-referansen")
+                page.get_by_text("Status: som i 2026")
             ).to_be_visible()
             expect(
                 page.get_by_text(
-                    "Boligtrinn-knappene endrer bare verdsettelsestrinn", exact=False
+                    "Knappene endrer bare boliggrensene", exact=False
                 )
             ).to_be_visible()
             advanced = page.get_by_text(
-                "Avansert: antatte eiere og gjeld/formue per bolig", exact=True
+                "Flere eksempler: eierskap og gjeld", exact=True
             )
             expect(advanced).to_be_visible()
             advanced.click()
@@ -107,7 +107,7 @@ def main() -> None:
                 animations="disabled",
             )
             page.get_by_text(
-                "Vis valgt boligs verdsetting, skattebånd og marginal endring",
+                "Slik regnes skatten for valgt bolig",
                 exact=True,
             ).click()
             diagnostics = page.get_by_role("table").filter(
@@ -144,9 +144,9 @@ def main() -> None:
                 page.get_by_text(re.compile(r"Referanse:.*Sandkasse:.*18,000 kr/år"))
             ).to_be_visible(timeout=180_000)
             preset_update = perf_counter() - update_started
-            expect(page.get_by_text("Status: egendefinert politikk")).to_be_visible()
+            expect(page.get_by_text("Status: dine egne regler")).to_be_visible()
             expect(
-                page.get_by_text(re.compile(r"Illustrert årlig endring.*\+869\.4"))
+                page.get_by_text(re.compile(r"Endring i modellen.*\+869\.4"))
             ).to_be_visible(timeout=60_000)
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
@@ -163,7 +163,7 @@ def main() -> None:
             # Personal share changes housing exposure, never the legacy population.
             # Marimo number fields are text inputs; their aria-label includes markup.
             share = page.locator(
-                'input[aria-label*="Skatteenhetens samlede eierandel"]'
+                'input[aria-label*="Din / deres eierandel"]'
             )
             share.fill("50")
             share.press("Tab")
@@ -173,10 +173,10 @@ def main() -> None:
                 )
             ).to_be_visible(timeout=60_000)
             expect(
-                page.get_by_text(re.compile(r"Skatteenhetens boligandel: 7,000,000 kr"))
+                page.get_by_text(re.compile(r"Din/deres boligandel: 7,000,000 kr"))
             ).to_be_visible()
             expect(
-                page.get_by_text(re.compile(r"Illustrert årlig endring.*\+869\.4"))
+                page.get_by_text(re.compile(r"Endring i modellen.*\+869\.4"))
             ).to_be_visible()
             expect(start_row).to_contain_text("761.4", timeout=60_000)
             share.fill("100")
@@ -184,14 +184,14 @@ def main() -> None:
             expect(
                 page.get_by_text(re.compile(r"Referanse:.*Sandkasse:.*18,000 kr/år"))
             ).to_be_visible(timeout=60_000)
-            page.get_by_role("button", name="Boligtrinn: 14 mill.", exact=True).click()
+            page.get_by_role("button", name="Boliggrense: 14 mill.", exact=True).click()
             expect(
                 page.get_by_text(
                     re.compile(r"Referanse:.*Sandkasse:.*Endring: \+0 kr/år")
                 )
             ).to_be_visible(timeout=60_000)
             expect(
-                page.get_by_text(re.compile(r"Illustrert årlig endring.*\+0\.0"))
+                page.get_by_text(re.compile(r"Endring i modellen.*\+0\.0"))
             ).to_be_visible(timeout=60_000)
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
@@ -203,13 +203,13 @@ def main() -> None:
             ).to_have_text(re.compile(r".*0.*0$"), timeout=60_000)
             expect(composition.locator("canvas")).to_be_attached()
             expect(
-                page.get_by_text("Status: samme politikk som 2026-referansen")
+                page.get_by_text("Status: som i 2026")
             ).to_be_visible()
             # T2a worked example: whole home 16m, half-owner, no debt.
-            debt = page.locator('input[aria-label*="Skatteenhetens gjeld"]')
+            debt = page.locator('input[aria-label*="Gjeld for eierandelen"]')
             debt.fill("0")
             debt.press("Tab")
-            home = page.locator('input[aria-label*="Hele boligens verdi"]')
+            home = page.locator('input[aria-label*="Boligens verdi"]')
             home.fill("16000000")
             home.press("Tab")
             share.fill("50")
@@ -221,7 +221,7 @@ def main() -> None:
             ).to_be_visible(timeout=60_000)
             joint = page.get_by_role(
                 "switch",
-                name=re.compile("Fellesfastsetting"),
+                name=re.compile("Regn for et par sammen"),
             )
             joint.click()
             expect(
@@ -239,7 +239,7 @@ def main() -> None:
             share.fill("0")
             share.press("Tab")
             expect(
-                page.get_by_text(re.compile(r"Skatteenhetens boligandel: 0 kr"))
+                page.get_by_text(re.compile(r"Din/deres boligandel: 0 kr"))
             ).to_be_visible(timeout=60_000)
             # Restore all controls exercised here to the original full-owner case.
             joint.click()
@@ -250,7 +250,7 @@ def main() -> None:
             home.fill("14000000")
             home.press("Tab")
             expect(
-                page.get_by_text(re.compile(r"Økonomisk nettoformue: 12,400,000 kr"))
+                page.get_by_text(re.compile(r"Din/deres boligandel: 14,000,000 kr"))
             ).to_be_visible(timeout=60_000)
             expect(
                 page.get_by_text(
@@ -263,18 +263,18 @@ def main() -> None:
             allowance = page.locator('input[aria-label*="Bunnfradrag per person"]')
             allowance.fill("2000000")
             allowance.press("Tab")
-            expect(page.get_by_text("Status: egendefinert politikk")).to_be_visible()
-            page.get_by_role("button", name="Boligtrinn: 10 mill.", exact=True).click()
-            page.get_by_role("button", name="Boligtrinn: 14 mill.", exact=True).click()
+            expect(page.get_by_text("Status: dine egne regler")).to_be_visible()
+            page.get_by_role("button", name="Boliggrense: 10 mill.", exact=True).click()
+            page.get_by_role("button", name="Boliggrense: 14 mill.", exact=True).click()
             expect(allowance).to_have_value("2,000,000")
-            expect(page.get_by_text("Status: egendefinert politikk")).to_be_visible()
+            expect(page.get_by_text("Status: dine egne regler")).to_be_visible()
             allowance.fill("1900000")
             allowance.press("Tab")
             expect(
-                page.get_by_text("Status: samme politikk som 2026-referansen")
+                page.get_by_text("Status: som i 2026")
             ).to_be_visible()
             # Add and remove a valuation tier through the real Tab/Enter sequence.
-            add = page.get_by_role("button", name="Legg til verdsettelsesgrense")
+            add = page.get_by_role("button", name="Legg til grense")
             reached_by_tab = False
             for _ in range(24):
                 page.keyboard.press("Tab")
@@ -285,19 +285,19 @@ def main() -> None:
             page.keyboard.press("Enter")
             remove = page.get_by_role("button", name="Fjern trinn 2")
             expect(remove).to_be_visible(timeout=60_000)
-            expect(page.get_by_text("Status: egendefinert politikk")).to_be_visible()
+            expect(page.get_by_text("Status: dine egne regler")).to_be_visible()
             page.keyboard.press("Shift+Tab")
             assert remove.evaluate("el => el === el.getRootNode().activeElement")
             page.keyboard.press("Enter")
             expect(remove).to_have_count(0)
             expect(
-                page.get_by_text("Status: samme politikk som 2026-referansen")
+                page.get_by_text("Status: som i 2026")
             ).to_be_visible()
             assert official_table.inner_text() == official_before
             assert composition.get_attribute("data-data") == composition_before
             # Tail is an explicit assumption; both models respond, references do not.
             tail = page.locator(
-                'input[aria-label*="Antatt antall boliger over 30 mill."]'
+                'input[aria-label*="Antall boliger over 30 mill."]'
             )
             tail.fill("0")
             tail.press("Tab")
@@ -333,7 +333,7 @@ def main() -> None:
                 'button[aria-label^="Decrease "]'
             )
             policy_heading = page.get_by_role(
-                "heading", name=re.compile("Politisk sandkasse")
+                "heading", name=re.compile("Prøv en annen boliggrense")
             )
             for width in (320, 360, 390):
                 page.set_viewport_size({"width": width, "height": 844})
@@ -361,7 +361,7 @@ def main() -> None:
                         control.get_attribute("aria-label"),
                     )
                 for control in (
-                    page.get_by_role("button", name="Legg til verdsettelsesgrense"),
+                    page.get_by_role("button", name="Legg til grense"),
                     page.get_by_role("button", name="Fjern trinn 1"),
                     preset,
                     group_selector,
@@ -387,9 +387,9 @@ def main() -> None:
             )
             page.get_by_role("button", name="Fjern trinn 2").click()
             expect(page.get_by_role("button", name="Fjern trinn 2")).to_have_count(0)
-            page.get_by_role("button", name="Boligtrinn: 14 mill.", exact=True).click()
+            page.get_by_role("button", name="Boliggrense: 14 mill.", exact=True).click()
             expect(
-                page.get_by_text("Status: samme politikk som 2026-referansen")
+                page.get_by_text("Status: som i 2026")
             ).to_be_visible()
             expect(
                 page.get_by_text(
