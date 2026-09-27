@@ -2,6 +2,8 @@
 
 import unittest
 
+import polars as pl
+
 from apps.building_taxation import calculate_wealth_tax_df, selected_tax_diagnostics
 
 BASE = dict(
@@ -17,6 +19,26 @@ HOUSEHOLD = dict(
 
 
 class DiagnosticTests(unittest.TestCase):
+    def test_income_changes_percentage_not_wealth_tax(self) -> None:
+        reform = {
+            **BASE,
+            "tiers": [{"limit": 10_000_000, "rate": 25}, {"limit": None, "rate": 70}],
+        }
+        rows = [
+            calculate_wealth_tax_df(
+                **reform,
+                **HOUSEHOLD,
+                annual_income=income,
+                selected_value=14_000_000,
+                max_value=14_000_000,
+            ).filter(pl.col("market_value") == 14_000_000).row(0, named=True)
+            for income in (0, 800_000, 1_600_000)
+        ]
+        self.assertEqual([row["tax"] for row in rows], [18_000] * 3)
+        self.assertIsNone(rows[0]["income_share"])
+        self.assertAlmostEqual(rows[1]["income_share"], 2.25)
+        self.assertAlmostEqual(rows[2]["income_share"], 1.125)
+
     def test_onset_and_valuation_kink(self) -> None:
         frame = calculate_wealth_tax_df(
             **BASE, **HOUSEHOLD, selected_value=14_000_000, max_value=20_000_000

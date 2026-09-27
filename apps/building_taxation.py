@@ -228,7 +228,6 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
 
 @app.cell
 def _(
-    annual_income,
     base_deduction,
     chart_max,
     get_tiers,
@@ -246,11 +245,11 @@ def _(
             mo.md("### Velg bolig og eiere"),
             is_couple,
             mo.md(
-                "Ved par: bruk samlet eierandel, gjeld, eiendeler og inntekt. "
+                "Ved par: bruk samlet eierandel, gjeld og eiendeler. "
                 "Ellers: bruk bare din del. Par-valget er en forenkling."
             ),
             ownership_share_ui,
-            mo.hstack([mortgage_debt, other_net_wealth, annual_income], wrap=True),
+            mo.hstack([mortgage_debt, other_net_wealth], wrap=True),
             selected_home,
             mo.md("### Prøv en annen boliggrense"),
             mo.md(
@@ -274,7 +273,7 @@ def _(
             chart_max,
             mo.md(
                 "25 % skattepliktig andel betyr at 75 % av boligverdien ikke teller "
-                "med i formuen. Inntekt endrer bare skatten målt som andel av inntekten."
+                "med i formuen."
             ),
         ]
     )
@@ -401,6 +400,7 @@ def _(
 
 @app.cell
 def _(
+    annual_income,
     curve_max,
     difference_df,
     housing_chart,
@@ -420,13 +420,7 @@ def _(
         f"Referanse: **{selected_rows[0]['tax']:,.0f} kr/år** · "
         f"Sandkasse: **{selected_rows[1]['tax']:,.0f} kr/år** · "
         f"Endring: **{selected_delta:+,.0f} kr/år**\n\n"
-        f"Din/deres boligandel: **{selected_rows[1]['owned_market_value']:,.0f} kr** · "
-        "Skatt som andel av inntekt: "
-        + (
-            f"**{selected_rows[1]['income_share']:.2f} %**."
-            if selected_rows[1]["income_share"] is not None
-            else "– (ingen inntekt)."
-        )
+        f"Din/deres boligandel: **{selected_rows[1]['owned_market_value']:,.0f} kr**"
     )
     curve_panels = [
         create_curve_panel(
@@ -455,7 +449,7 @@ def _(
         curve_max,
     )
     coordinated_curves = alt.vconcat(
-        *curve_panels, housing_chart, delta_panel, burden_panel
+        *curve_panels, housing_chart, delta_panel
     ).resolve_scale(x="shared", color="shared")
     diagnostic_rows = [
         selected_tax_diagnostics(
@@ -506,6 +500,29 @@ def _(
                         ]
                     ),
                     "Hvor knekker kurvene?": mo.md("\n\n".join(marker_notes)),
+                }
+            ),
+            mo.accordion(
+                {
+                    "Nysgjerrig på skatt opp mot inntekt?": mo.vstack(
+                        [
+                            mo.md(
+                                "Formuesskatt regnes ut fra formue, ikke inntekt. "
+                                "Her kan du se hvor stor skatten er sammenlignet med "
+                                "årlig inntekt før skatt. Beløpet endrer ikke skatten i kroner."
+                            ),
+                            annual_income,
+                            mo.md(
+                                "For valgt bolig: "
+                                + (
+                                    f"**{selected_rows[1]['income_share']:.2f} %** av inntekten."
+                                    if selected_rows[1]["income_share"] is not None
+                                    else "ingen prosent når inntekten er 0 kr."
+                                )
+                            ),
+                            burden_panel,
+                        ]
+                    )
                 }
             ),
         ]
