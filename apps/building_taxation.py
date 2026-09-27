@@ -236,8 +236,12 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
     )
     valuation_ui = mo.vstack(
         [
-            mo.md("#### Boliggrenser"),
-            mo.md("Knappene endrer bare boliggrensene, ikke de andre valgene dine."),
+            mo.md("#### 1. Hvor mye av boligen teller som formue?"),
+            mo.md(
+                "Ved 25 % skattepliktig andel teller 25 % av boligverdien med. "
+                "Knappene setter boligtrinnene tilbake til 25 % og 70 %, "
+                "men endrer ikke fradrag eller skattesatser."
+            ),
             tier_presets,
             *tier_rows,
             add_btn,
@@ -282,7 +286,7 @@ def _(
                 gap=1,
                 wrap=True,
             ).style({"max-width": "920px"}),
-            mo.md("### Prøv en annen boliggrense"),
+            mo.md("### Prøv andre regler"),
             mo.md(
                 "**Status: "
                 + (
@@ -299,13 +303,37 @@ def _(
                 )
                 + "**. Vi bruker samme bolig og økonomi i begge kurver."
             ),
-            mo.hstack([base_deduction, tax_rate_ui, upper_rate_ui], wrap=True),
-            valuation_ui,
-            chart_max,
-            mo.md(
-                "25 % skattepliktig andel betyr at 75 % av boligverdien ikke teller "
-                "med i formuen."
+            valuation_ui.style(
+                {
+                    "border": "1px solid var(--border)",
+                    "border-radius": "8px",
+                    "padding": "16px",
+                }
             ),
+            mo.vstack(
+                [
+                    mo.md("#### 2. Hvilket fradrag og hvilke skattesatser?"),
+                    mo.md(
+                        "Bunnfradraget trekkes fra skattepliktig nettoformue per person. "
+                        "Ordinær sats gjelder opp til 21,5 mill. kr i nettoformue per "
+                        "person; øvre sats gjelder beløpet over dette."
+                    ),
+                    mo.hstack(
+                        [base_deduction, tax_rate_ui, upper_rate_ui],
+                        justify="start",
+                        gap=1,
+                        wrap=True,
+                    ),
+                ]
+            ).style(
+                {
+                    "border": "1px solid var(--border)",
+                    "border-radius": "8px",
+                    "padding": "16px",
+                }
+            ),
+            mo.md("#### Visning av kurver"),
+            chart_max,
         ]
     )
     return (ui_elements,)

@@ -333,7 +333,7 @@ def main() -> None:
                 'button[aria-label^="Decrease "]'
             )
             policy_heading = page.get_by_role(
-                "heading", name=re.compile("Prøv en annen boliggrense")
+                "heading", name=re.compile("Prøv andre regler")
             )
             for width in (320, 360, 390):
                 page.set_viewport_size({"width": width, "height": 844})
