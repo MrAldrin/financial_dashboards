@@ -264,6 +264,10 @@ def _(
     ui_elements = mo.vstack(
         [
             mo.md("### Din bolig og økonomi"),
+            is_couple,
+            mo.md(
+                "For par: bruk samlet eierandel, gjeld og eiendeler i boksene under."
+            ),
             mo.hstack(
                 [
                     mo.vstack(
@@ -273,11 +277,12 @@ def _(
                                 "Oppgi verdien av hele boligen. Eierandelen avgjør hvor mye "
                                 "som teller for deg eller dere."
                             ),
-                            is_couple,
                             ownership_share_ui,
                             mo.hstack(
                                 [
-                                    selected_home.style({"width": "350px"}),
+                                    selected_home.style(
+                                        {"width": "100%", "max-width": "350px"}
+                                    ),
                                     selected_home_number,
                                 ],
                                 justify="start",
@@ -286,12 +291,18 @@ def _(
                                 wrap=True,
                             ).style({"max-width": "920px"}),
                         ]
-                    ).style(box_style),
+                    ).style(
+                        {
+                            **box_style,
+                            "height": "100%",
+                            "min-width": "min(320px, calc(100vw - 36px))",
+                        }
+                    ),
                     mo.vstack(
                         [
                             mo.md("#### 2. Gjeld og andre eiendeler"),
                             mo.md(
-                                "For par: bruk samlet gjeld og eiendeler. Ellers: bruk bare din del. "
+                                "Bruk gjeld og andre eiendeler for samme eier eller eiere. "
                                 "Gjeld trekkes fra formuen."
                             ),
                             mo.hstack(
@@ -301,7 +312,13 @@ def _(
                                 wrap=True,
                             ),
                         ]
-                    ).style(box_style),
+                    ).style(
+                        {
+                            **box_style,
+                            "height": "100%",
+                            "min-width": "min(320px, calc(100vw - 36px))",
+                        }
+                    ),
                 ],
                 justify="start",
                 align="stretch",
