@@ -264,39 +264,51 @@ def _(
     ui_elements = mo.vstack(
         [
             mo.md("### Din bolig og økonomi"),
-            mo.vstack(
+            mo.hstack(
                 [
-                    mo.md("#### 1. Bolig og eiere"),
-                    mo.md(
-                        "Oppgi verdien av hele boligen. Eierandelen avgjør hvor mye "
-                        "som teller for deg eller dere."
-                    ),
-                    is_couple,
-                    ownership_share_ui,
-                    mo.hstack(
-                        [selected_home.style({"width": "350px"}), selected_home_number],
-                        justify="start",
-                        align="end",
-                        gap=1,
-                        wrap=True,
-                    ).style({"max-width": "920px"}),
-                ]
-            ).style(box_style),
-            mo.vstack(
-                [
-                    mo.md("#### 2. Gjeld og andre eiendeler"),
-                    mo.md(
-                        "For par: bruk samlet gjeld og eiendeler. Ellers: bruk bare din del. "
-                        "Gjeld trekkes fra formuen."
-                    ),
-                    mo.hstack(
-                        [mortgage_debt, other_net_wealth],
-                        justify="start",
-                        gap=1,
-                        wrap=True,
-                    ),
-                ]
-            ).style(box_style),
+                    mo.vstack(
+                        [
+                            mo.md("#### 1. Bolig og eiere"),
+                            mo.md(
+                                "Oppgi verdien av hele boligen. Eierandelen avgjør hvor mye "
+                                "som teller for deg eller dere."
+                            ),
+                            is_couple,
+                            ownership_share_ui,
+                            mo.hstack(
+                                [
+                                    selected_home.style({"width": "350px"}),
+                                    selected_home_number,
+                                ],
+                                justify="start",
+                                align="end",
+                                gap=1,
+                                wrap=True,
+                            ).style({"max-width": "920px"}),
+                        ]
+                    ).style(box_style),
+                    mo.vstack(
+                        [
+                            mo.md("#### 2. Gjeld og andre eiendeler"),
+                            mo.md(
+                                "For par: bruk samlet gjeld og eiendeler. Ellers: bruk bare din del. "
+                                "Gjeld trekkes fra formuen."
+                            ),
+                            mo.hstack(
+                                [mortgage_debt, other_net_wealth],
+                                justify="start",
+                                gap=1,
+                                wrap=True,
+                            ),
+                        ]
+                    ).style(box_style),
+                ],
+                justify="start",
+                align="stretch",
+                wrap=True,
+                gap=1,
+                widths="equal",
+            ),
             mo.md("### Prøv andre regler"),
             mo.md(
                 "**Status: "
