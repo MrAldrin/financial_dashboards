@@ -174,7 +174,7 @@ def _(get_tiers, set_tiers):
 
 
 @app.cell
-def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
+def _(add_tier, get_tiers, remove_tier, update_tier):
     current_tiers = get_tiers()
     tier_rows = []
     add_btn = mo.ui.button(label="Legg til grense", on_change=lambda _: add_tier())
@@ -201,7 +201,17 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
             )
             inputs.append(limit_input)
         else:
-            inputs.extend([mo.md("Alt over forrige grense"), add_btn])
+            inputs.extend(
+                [
+                    mo.md("Alt over forrige grense").style(
+                        {
+                            "width": "min(240px, calc(100vw - 68px))",
+                            "white-space": "nowrap",
+                        }
+                    ),
+                    add_btn,
+                ]
+            )
         if not is_last:
             remove_btn = mo.ui.button(
                 label=f"Fjern trinn {i + 1}",
@@ -212,36 +222,18 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
         tier_rows.append(
             mo.hstack(
                 inputs,
-                justify="space-between" if is_last else "start",
+                justify="start",
                 align="center",
                 wrap=True,
             )
         )
-    tier_presets = mo.hstack(
-        [
-            mo.ui.button(
-                label=f"Boliggrense: {limit} mill.",
-                on_change=lambda _, limit=limit: set_tiers(
-                    [
-                        {"limit": limit * 1_000_000, "rate": 25.0},
-                        {"limit": None, "rate": 70.0},
-                    ]
-                ),
-            )
-            for limit in (10, 14, 20)
-        ],
-        justify="start",
-        wrap=True,
-    )
     valuation_ui = mo.vstack(
         [
             mo.md("#### 1. Hvor mye av boligen teller som formue?"),
             mo.md(
-                "Ved 25 % skattepliktig andel teller 25 % av boligverdien med. "
-                "Knappene setter boligtrinnene tilbake til 25 % og 70 %, "
-                "men endrer ikke fradrag eller skattesatser."
+                "Velg hvor stor andel av boligverdien som teller som formue "
+                "under og over hver grense."
             ),
-            tier_presets,
             *tier_rows,
         ]
     )
@@ -256,12 +248,19 @@ def _(
     mortgage_debt,
     other_net_wealth,
     ownership_share_ui,
+    reference,
     selected_home,
     selected_home_number,
     tax_rate_ui,
     upper_rate_ui,
     valuation_ui,
 ):
+    wealth_amount = (
+        selected_home.value * ownership_share_ui.value / 100
+        + other_net_wealth.value
+        - mortgage_debt.value
+    )
+    wealth_context = wealth_bracket(wealth_amount, reference["wealth_groups"])
     box_style = {
         "border": "1px solid var(--border)",
         "border-radius": "8px",
@@ -331,6 +330,12 @@ def _(
                 wrap=True,
                 gap=1,
                 widths="equal",
+            ),
+            mo.md(
+                f"#### Hvor plasserer nettoformuen seg?\n"
+                f"Boligandel + andre eiendeler − gjeld = **{wealth_amount:,.0f} kr**. "
+                f"Dette tilsvarer omtrent **{wealth_context}** blant "
+                "[norske husholdninger (SSB 2024)](https://www.ssb.no/statbank/table/10318). "
             ),
             mo.md("### Prøv andre regler"),
             mo.md(
@@ -557,7 +562,6 @@ def _(
             tax_df, field, title, markers_df, selected_home.value, curve_max
         )
         for field, title in [
-            ("valuation", "Skatteenhetens boligformuesverdi (NOK)"),
             ("tax_base", "Etter gjeld og fradrag — før nullgulv (NOK)"),
             ("tax", "Årlig formuesskatt (NOK)"),
         ]
@@ -657,7 +661,7 @@ def _(
             ),
         ]
     )
-    return (selected_rows,)
+    return
 
 
 @app.cell
@@ -702,33 +706,31 @@ def _(curve_max, get_tiers, selected_home):
         height=160,
         title="Boliger i figuren (2026). Over 30 mill. kr: ukjent antall.",
     )
-    return housing_chart, housing_df, reference
+    return housing_chart, reference
 
 
 @app.cell
-def _(get_tiers, housing_df, reference, selected_rows):
-    wealth_context = wealth_bracket(
-        selected_rows[1]["economic_wealth"], reference["wealth_groups"]
-    )
+def _(get_tiers, reference):
     exposure_limits = sorted(
         {14_000_000, *[t["limit"] for t in get_tiers() if t["limit"] is not None]}
     )
     exposure_rows = [
-        dict(grense=limit, **exposure_above(reference["housing_bins"], limit))
+        {
+            "Grense (kr)": limit,
+            "Boliger over grensen (anslag)": exposure_above(
+                reference["housing_bins"], limit
+            )["midtanslag_viste_grupper"],
+        }
         for limit in exposure_limits
     ]
     mo.vstack(
         [
             mo.md(
-                f"### Hvor plasserer beløpet seg?\n**{wealth_context}**\n\n"
-                "Sammenlignet med husholdninger i [SSB 2024](https://www.ssb.no/statbank/table/10318). "
-                "Dette er ikke en personlig plassering: en eierandel er ikke alltid en hel husholdning."
-            ),
-            mo.md(
-                f"### Hvor mange boliger er over grensen?\nOmtrent "
-                f"**{housing_df['count'].sum() / 1_000_000:.2f} mill.** boliger er med i figuren. "
-                "Tallene under er anslag fra figuren, ikke eksakte tellinger. "
-                "Antallet over 30 mill. kr er ukjent."
+                "### Hvor mange boliger er over grensene?\n"
+                "Omtrent hvor mange boliger har høyere markedsverdi enn 14 mill. kr "
+                "(2026-referansen) og grensene du har valgt? Anslagene er lest av "
+                "fra en figur og avrundet til nærmeste 100 boliger. "
+                "Boliger over 30 mill. kr er ikke med; antallet er ukjent."
             ),
             mo.ui.table(pl.DataFrame(exposure_rows), selection=None),
             mo.accordion(
