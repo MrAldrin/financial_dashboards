@@ -177,6 +177,7 @@ def _(get_tiers, set_tiers):
 def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
     current_tiers = get_tiers()
     tier_rows = []
+    add_btn = mo.ui.button(label="Legg til grense", on_change=lambda _: add_tier())
     for i, tier in enumerate(current_tiers):
         is_last = tier["limit"] is None
         rate_input = mo.ui.number(
@@ -185,7 +186,7 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
             stop=100,
             label=f"Andel % ({i + 1})",
             on_change=lambda v, idx=i: update_tier(idx, "rate", v),
-        ).style({"width": "min(190px, calc(100vw - 68px))", "white-space": "nowrap"})
+        ).style({"width": "min(170px, calc(100vw - 68px))", "white-space": "nowrap"})
         inputs = [rate_input]
         if not is_last:
             limit_input = mo.ui.number(
@@ -196,11 +197,11 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
                 step=1_000_000,
                 on_change=lambda v, idx=i: update_tier(idx, "limit", v),
             ).style(
-                {"width": "min(260px, calc(100vw - 68px))", "white-space": "nowrap"}
+                {"width": "min(240px, calc(100vw - 68px))", "white-space": "nowrap"}
             )
             inputs.append(limit_input)
         else:
-            inputs.append(mo.md("Alt over forrige grense"))
+            inputs.extend([mo.md("Alt over forrige grense"), add_btn])
         if not is_last:
             remove_btn = mo.ui.button(
                 label=f"Fjern trinn {i + 1}",
@@ -208,8 +209,14 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
                 kind="neutral",
             )
             inputs.append(remove_btn)
-        tier_rows.append(mo.hstack(inputs, justify="start", align="center", wrap=True))
-    add_btn = mo.ui.button(label="Legg til grense", on_change=lambda _: add_tier())
+        tier_rows.append(
+            mo.hstack(
+                inputs,
+                justify="space-between" if is_last else "start",
+                align="center",
+                wrap=True,
+            )
+        )
     tier_presets = mo.hstack(
         [
             mo.ui.button(
@@ -236,7 +243,6 @@ def _(add_tier, get_tiers, remove_tier, set_tiers, update_tier):
             ),
             tier_presets,
             *tier_rows,
-            add_btn,
         ]
     )
     return (valuation_ui,)
